@@ -113,8 +113,19 @@ def get_telemetry_aggregate(
                 avg(CASE WHEN jsonb_typeof(extra_metrics -> 'nox_index') = 'number'
                          THEN (extra_metrics ->> 'nox_index')::double precision END) AS nox_index,
                 count(*) AS n
-            FROM sensor_data
-            WHERE {where_sql}
+            FROM (
+                -- OFFSET 0 la rao vat chat hoa, KHONG PHAI code thua. No ngan
+                -- Postgres gop phang subquery, nho do chi mang 6 cot can thiet vao
+                -- buoc gop thay vi keo ca dong rong 407 byte (extra_metrics JSONB).
+                -- Do A/B xen ke qua dung duong code nay, 42.700 dong, khoang 6 gio:
+                --   khong rao: 5575, 3098, 2370 ms  (trung binh 3681)
+                --   co rao:    3371, 2116, 2169 ms  (trung binh 2552)
+                -- Nhanh hon ~30%. Bien do dao dong lon, may nay khong manh.
+                SELECT "timestamp", temperature, humidity, pm25, co2, extra_metrics
+                FROM sensor_data
+                WHERE {where_sql}
+                OFFSET 0
+            ) src
             GROUP BY 1
             ORDER BY 1 DESC
             LIMIT :max_points

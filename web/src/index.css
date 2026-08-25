@@ -34,6 +34,7 @@
     --air-bad:   166  75  58;
 
     --bevel: rgb(255 255 255 / 0.5);
+    --tone: 130 138 132;
 
     --radius: 0.625rem;
 
@@ -118,23 +119,65 @@
     border-radius: var(--radius);
   }
 
-  .rocker {
+  /* Danh tính phòng: một lớp màu rất nhạt phủ lên mặt bảng.
+     Giữ ở mức thấp để nó nói "phòng nào" chứ không tranh chỗ với
+     công tắc — thứ người ta thực sự nhìn. */
+  .plate--toned {
+    background:
+      linear-gradient(rgb(var(--tone) / 0.06), rgb(var(--tone) / 0.06)),
+      rgb(var(--surface));
+  }
+
+  .plate__head {
+    background: rgb(var(--tone) / 0.10);
+  }
+
+  /* Công tắc gạt.
+     Trạng thái báo bằng VỊ TRÍ của núm, không phải bằng màu — nhờ vậy
+     màu được giải phóng để mang danh tính của phòng (--tone) mà không
+     gây mơ hồ. Toàn bộ ngân sách chuyển động chi vào cú gạt này. */
+  .gat {
     position: relative;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 3.5rem;
+    border-radius: 0.5rem;
     background: rgb(var(--sunken));
     border: 1px solid rgb(var(--line));
-    border-radius: calc(var(--radius) - 2px);
-    transition: transform 120ms ease-out, background-color 160ms ease-out,
-                border-color 160ms ease-out, box-shadow 160ms ease-out;
-    box-shadow: inset 0 1px 0 var(--bevel);
+    box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.13);
+    transition: background-color 180ms ease-out, border-color 180ms ease-out;
   }
 
-  .rocker[data-on='true'] {
-    background: rgb(var(--live) / 0.14);
-    border-color: rgb(var(--live) / 0.55);
+  .gat__knob {
+    position: absolute;
+    top: 4px;
+    left: 3px;
+    right: 3px;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--line));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2), inset 0 1px 0 var(--bevel);
+    transform: translateY(1.5rem);
+    transition: transform 170ms cubic-bezier(0.32, 0.72, 0.35, 1);
   }
 
-  .rocker:active {
-    transform: translateY(1px) scale(0.985);
+  .switch-row[data-on='true'] .gat {
+    background: rgb(var(--tone) / 0.85);
+    border-color: rgb(var(--tone));
+  }
+
+  .switch-row[data-on='true'] .gat__knob {
+    transform: translateY(0);
+  }
+
+  .switch-row:active .gat__knob {
+    height: 1.625rem;
+  }
+
+  .switch-row:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   /* ── TẠM THỜI, GỠ Ở ĐỢT SAU ────────────────────────────────────
@@ -151,10 +194,6 @@
     color: #edefea;
   }
 
-  .rocker:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

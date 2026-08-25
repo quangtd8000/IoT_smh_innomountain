@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useHome } from '../../context/HomeContext';
 import { Device, RelayChannel } from '../../types';
+import { roomTone, RoomTone } from '../../lib/roomTone';
 import { cn } from '../../lib/utils';
 
 interface Key {
@@ -11,6 +12,7 @@ interface Key {
 interface Plate {
   roomId: number | string;
   roomName: string;
+  tone: RoomTone;
   keys: Key[];
 }
 
@@ -19,9 +21,10 @@ const UNASSIGNED = 'unassigned';
 /**
  * Mặt công tắc ốp tường — điểm nhấn của giao diện.
  *
- * Công tắc trong nhà không phải là toggle trừu tượng: nó là một tấm ốp
- * gắn trên tường, mỗi phòng một tấm, phím có nhãn ghi bên dưới và một đèn
- * báo nhỏ ở góc. Ai cũng đã biết đọc thứ này rồi.
+ * Công tắc gạt báo trạng thái bằng vị trí của núm chứ không bằng màu.
+ * Nhờ vậy màu được rảnh tay mang danh tính của phòng: mỗi phòng một tone
+ * riêng phủ rất nhạt lên mặt bảng, mà vẫn không ai phải đoán phím nào
+ * đang bật.
  */
 export const SwitchPlate: React.FC = () => {
   const { devices, rooms, toggleRelayChannel } = useHome();
@@ -40,14 +43,13 @@ export const SwitchPlate: React.FC = () => {
         'Chưa gán phòng';
 
       if (!byRoom.has(roomId)) {
-        byRoom.set(roomId, { roomId, roomName, keys: [] });
+        byRoom.set(roomId, { roomId, roomName, tone: roomTone(roomName), keys: [] });
       }
       for (const channel of device.relay_channels) {
         byRoom.get(roomId)!.keys.push({ channel, device });
       }
     }
 
-    // Phòng có nhiều phím lên trước; tấm chưa gán phòng luôn xuống cuối
     return Array.from(byRoom.values()).sort((a, b) => {
       if (a.roomId === UNASSIGNED) return 1;
       if (b.roomId === UNASSIGNED) return -1;
@@ -82,22 +84,29 @@ export const SwitchPlate: React.FC = () => {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {plates.map((plate) => {
+        const Icon = plate.tone.icon;
         const onCount = plate.keys.filter((k) => k.channel.state).length;
+
         return (
-          <section key={plate.roomId} className="plate p-4">
-            <div className="flex items-baseline justify-between gap-2 mb-3">
-              <h3 className="text-sm font-medium text-ink truncate">{plate.roomName}</h3>
+          <section
+            key={plate.roomId}
+            className="plate plate--toned overflow-hidden p-0"
+            style={{ ['--tone' as string]: plate.tone.rgb } as React.CSSProperties}
+          >
+            <header className="plate__head flex items-center gap-2.5 px-4 py-3 border-b border-line">
+              <Icon
+                size={17}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                style={{ color: 'rgb(var(--tone))' }}
+              />
+              <h3 className="flex-1 text-sm font-medium text-ink truncate">{plate.roomName}</h3>
               <span className="text-sm text-ink-2 tnum flex-shrink-0">
                 {onCount}/{plate.keys.length}
               </span>
-            </div>
+            </header>
 
-            <div
-              className={cn(
-                'grid gap-2.5',
-                plate.keys.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'
-              )}
-            >
+            <ul>
               {plate.keys.map((key) => {
                 const { channel, device } = key;
                 const isOn = channel.state;
@@ -105,41 +114,38 @@ export const SwitchPlate: React.FC = () => {
                 const isOffline = device.status === 'offline';
 
                 return (
-                  <div key={channel.id} className="min-w-0">
+                  <li key={channel.id} className="border-b border-line last:border-b-0">
                     <button
                       type="button"
                       role="switch"
                       aria-checked={isOn}
-                      aria-label={`${channel.name} — ${isOn ? 'đang bật' : 'đang tắt'}`}
+                      aria-label={channel.name}
                       disabled={isPending || isOffline}
                       data-on={isOn}
                       onClick={() => handlePress(key)}
                       className={cn(
-                        'rocker w-full h-20 flex items-end justify-end p-2',
+                        'switch-row w-full flex items-center gap-3 px-4 py-3 text-left',
+                        'transition-colors duration-150 hover:bg-ink/[0.03]',
                         isPending && 'opacity-60'
                       )}
                     >
-                      {/* Đèn báo ở góc, như công tắc thật */}
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          'h-2 w-2 rounded-full transition-colors duration-150',
-                          isOn ? 'bg-live' : 'bg-ink-2/30'
-                        )}
-                      />
-                    </button>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm text-ink truncate" title={channel.name}>
+                          {channel.name}
+                        </span>
+                        <span className="block text-xs text-ink-2">
+                          {isOffline ? 'Mất kết nối' : isOn ? 'Bật' : 'Tắt'}
+                        </span>
+                      </span>
 
-                    {/* Nhãn nằm dưới phím, như nhãn dán trên tấm ốp */}
-                    <p className="mt-1.5 text-sm text-ink truncate" title={channel.name}>
-                      {channel.name}
-                    </p>
-                    <p className="text-xs text-ink-2">
-                      {isOffline ? 'Mất kết nối' : isOn ? 'Bật' : 'Tắt'}
-                    </p>
-                  </div>
+                      <span className="gat" aria-hidden="true">
+                        <span className="gat__knob" />
+                      </span>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </section>
         );
       })}

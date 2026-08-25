@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useHome } from '../../context/HomeContext';
 import { useTheme } from '../../context/ThemeContext';
 import { telemetryApi } from '../../api/telemetry';
-import { SensorData } from '../../types';
 import { MetricChart } from '../charts/MetricChart';
 import { CHART } from '../../lib/chartColors';
-import { RANGES, bucketTelemetry, effectiveWindow, formatSpan, Bucket } from '../../lib/telemetry';
+import { RANGES, toBuckets, spanMinutes, formatSpan, Bucket } from '../../lib/telemetry';
 import { cn } from '../../lib/utils';
 
 interface MetricDef {
@@ -43,14 +42,14 @@ const GROUPS: { id: string; label: string; metrics: MetricDef[] }[] = [
   },
 ];
 
-// Khoảng ngắn nhất: dashboard cần xu hướng gần đây, không cần lịch sử
+/** Dashboard cần xu hướng gần đây, không cần lịch sử — dùng khoảng ngắn nhất. */
 const RANGE = RANGES[0];
 
 export const SensorChart: React.FC = () => {
   const { devices } = useHome();
   const { resolved } = useTheme();
   const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
-  const [telemetryList, setTelemetryList] = useState<SensorData[]>([]);
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [groupId, setGroupId] = useState<string>('temp_hum');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -66,11 +65,12 @@ export const SensorChart: React.FC = () => {
   const loadTelemetry = async (deviceId: number) => {
     setLoading(true);
     try {
-      const data = await telemetryApi.getTelemetry(deviceId, {
-        limit: 1000,
+      const rows = await telemetryApi.getAggregate(deviceId, {
+        bucket_seconds: RANGE.bucketSeconds,
         start_time: new Date(Date.now() - RANGE.ms).toISOString(),
+        max_points: 200,
       });
-      setTelemetryList(data);
+      setBuckets(toBuckets(rows));
     } catch (error) {
       console.error('Error fetching telemetry:', error);
     } finally {
@@ -81,22 +81,19 @@ export const SensorChart: React.FC = () => {
   useEffect(() => {
     if (!selectedDeviceId) return;
     loadTelemetry(selectedDeviceId);
-    // 15 giây một lần: đủ tươi cho xu hướng, không kéo 1000 bản ghi mỗi 5 giây
-    const interval = setInterval(() => loadTelemetry(selectedDeviceId), 15000);
+    // Ô rộng 1 phút nên không cần làm mới dày hơn thế
+    const interval = setInterval(() => loadTelemetry(selectedDeviceId), 30000);
     return () => clearInterval(interval);
   }, [selectedDeviceId]);
-
-  const win = useMemo(() => effectiveWindow(telemetryList, RANGE), [telemetryList]);
-  const buckets = useMemo(() => (win ? bucketTelemetry(telemetryList, win) : []), [telemetryList, win]);
 
   return (
     <div className="plate p-5 sm:p-6">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-sm font-medium text-ink-2">
-            {win ? `${formatSpan(win.minutes)} vừa qua` : RANGE.label}
+            {buckets.length > 1 ? `${formatSpan(spanMinutes(buckets))} vừa qua` : RANGE.label}
           </h2>
-          <p className="text-xs text-ink-2 mt-0.5">Cập nhật 15 giây một lần</p>
+          <p className="text-xs text-ink-2 mt-0.5">Trung bình mỗi phút</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">

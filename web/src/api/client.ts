@@ -2,7 +2,9 @@ import axios, { AxiosError } from 'axios';
 
 // Get base URL from localStorage or environment or default
 export const getBaseUrl = (): string => {
-  return localStorage.getItem('smarthome_api_url') || import.meta.env.VITE_API_URL || 'http://192.168.1.35:8000/api';
+  // Duong dan tuong doi: nginx proxy /api sang backend, nen chay duoc tu
+  // bat ky dia chi nao (IP LAN, IP public, tunnel) ma khong phai build lai.
+  return localStorage.getItem('smarthome_api_url') || import.meta.env.VITE_API_URL || '/api';
 };
 
 export const setBaseUrl = (url: string) => {

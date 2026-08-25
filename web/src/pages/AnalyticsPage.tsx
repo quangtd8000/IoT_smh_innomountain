@@ -1,22 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useHome } from '../context/HomeContext';
 import { useTheme } from '../context/ThemeContext';
 import { telemetryApi } from '../api/telemetry';
-import { SensorData } from '../types';
 import { Button } from '../components/ui/Button';
-import { Notice } from '../components/ui/Notice';
 import { MetricChart } from '../components/charts/MetricChart';
 import { CHART } from '../lib/chartColors';
-import { RANGES, bucketTelemetry, effectiveWindow, formatSpan, Bucket } from '../lib/telemetry';
+import { RANGES, toBuckets, spanMinutes, formatSpan, Bucket } from '../lib/telemetry';
 import { cn } from '../lib/utils';
 
-const METRICS: {
-  key: keyof Bucket;
-  name: string;
-  unit: string;
-  digits: number;
-}[] = [
+const METRICS: { key: keyof Bucket; name: string; unit: string; digits: number }[] = [
   { key: 'temperature', name: 'Nhiệt độ', unit: '°C', digits: 1 },
   { key: 'humidity', name: 'Độ ẩm', unit: '%', digits: 0 },
   { key: 'pm25', name: 'Bụi mịn PM2.5', unit: 'µg/m³', digits: 1 },
@@ -28,11 +21,11 @@ export const AnalyticsPage: React.FC = () => {
   const { resolved } = useTheme();
   const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
   const [rangeId, setRangeId] = useState<string>('60m');
-  const [telemetryList, setTelemetryList] = useState<SensorData[]>([]);
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(false);
 
   const palette = CHART[resolved];
-  const range = RANGES.find((r) => r.id === rangeId) ?? RANGES[RANGES.length - 1];
+  const range = RANGES.find((r) => r.id === rangeId) ?? RANGES[1];
 
   useEffect(() => {
     if (devices.length > 0 && !selectedDeviceId) {
@@ -44,14 +37,15 @@ export const AnalyticsPage: React.FC = () => {
     if (!selectedDeviceId) return;
     setLoading(true);
     try {
-      const startTime = new Date(Date.now() - range.ms).toISOString();
-      const data = await telemetryApi.getTelemetry(selectedDeviceId, {
-        limit: 1000,
-        start_time: startTime,
+      const rows = await telemetryApi.getAggregate(selectedDeviceId, {
+        bucket_seconds: range.bucketSeconds,
+        start_time: new Date(Date.now() - range.ms).toISOString(),
+        max_points: 500,
       });
-      setTelemetryList(data);
+      setBuckets(toBuckets(rows));
     } catch (err: any) {
       console.error('Error loading analytics telemetry:', err);
+      setBuckets([]);
     } finally {
       setLoading(false);
     }
@@ -61,35 +55,31 @@ export const AnalyticsPage: React.FC = () => {
     loadData();
   }, [selectedDeviceId, rangeId]);
 
-  const win = useMemo(() => effectiveWindow(telemetryList, range), [telemetryList, range]);
-  const buckets = useMemo(() => (win ? bucketTelemetry(telemetryList, win) : []), [telemetryList, win]);
-
-  const selectClass = 'min-h-9 bg-surface border border-line text-ink text-sm rounded-md px-2';
-
   const handleExportCSV = () => {
-    if (telemetryList.length === 0) return;
-    const headers = ['ID', 'DeviceID', 'Timestamp', 'Temperature_C', 'Humidity_Percent', 'PM25_ug_m3', 'CO2_ppm'];
-    const rows = telemetryList.map((t) => [
-      t.id,
-      t.device_id,
-      t.timestamp,
-      t.temperature ?? '',
-      t.humidity ?? '',
-      t.pm25 ?? '',
-      t.co2 ?? '',
+    if (buckets.length === 0) return;
+    const headers = ['Moc', 'NhietDo_C', 'DoAm_Phantram', 'PM25_ug_m3', 'CO2_ppm', 'SoBanGhi'];
+    const rows = buckets.map((b) => [
+      new Date(b.t).toISOString(),
+      b.temperature ?? '',
+      b.humidity ?? '',
+      b.pm25 ?? '',
+      b.co2 ?? '',
+      b.n,
     ]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('href', encodeURI(csv));
     link.setAttribute(
       'download',
-      `telemetry_device_${selectedDeviceId}_${new Date().toISOString().slice(0, 10)}.csv`
+      `telemetry_${selectedDeviceId}_${new Date().toISOString().slice(0, 10)}.csv`
     );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  const selectClass = 'min-h-9 bg-surface border border-line text-ink text-sm rounded-md px-2';
+  const totalRecords = buckets.reduce((a, b) => a + b.n, 0);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -128,7 +118,7 @@ export const AnalyticsPage: React.FC = () => {
           Làm mới
         </Button>
 
-        <Button variant="secondary" size="sm" onClick={handleExportCSV} disabled={telemetryList.length === 0}>
+        <Button variant="secondary" size="sm" onClick={handleExportCSV} disabled={buckets.length === 0}>
           Tải CSV
         </Button>
       </div>
@@ -141,24 +131,17 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Mỗi chỉ số một biểu đồ, một thang y riêng */}
           <div className="plate p-5 sm:p-6">
             <div className="flex items-baseline justify-between gap-3 mb-4">
               <h2 className="text-sm font-medium text-ink-2">
-                {win ? `${formatSpan(win.minutes)} vừa qua` : range.label}
+                {buckets.length > 1 ? `${formatSpan(spanMinutes(buckets))} vừa qua` : range.label}
               </h2>
               <span className="text-xs text-ink-2 tnum">
-                {telemetryList.length} bản ghi, gộp thành {buckets.length} mốc
+                {totalRecords.toLocaleString('vi-VN')} bản ghi, gộp thành {buckets.length} mốc
               </span>
             </div>
 
-            {/* Noi that khi khoang thuc te ngan hon khoang da chon */}
-            {win?.truncated && (
-              <Notice tone="info" className="mb-4">
-                {`Máy chủ chỉ trả tối đa 1000 bản ghi mỗi lần. Cảm biến gửi khoảng nửa giây một lần, nên biểu đồ đang hiển thị ${formatSpan(win.minutes)} gần nhất thay vì ${range.label.toLowerCase()}.`}
-              </Notice>
-            )}
-
+            {/* Mỗi chỉ số một biểu đồ, một thang y riêng */}
             <div className="grid gap-4 lg:grid-cols-2">
               {METRICS.map((m, i) => (
                 <MetricChart

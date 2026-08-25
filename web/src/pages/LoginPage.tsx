@@ -104,8 +104,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onGoToRegister }) => {
                 label="Địa chỉ máy chủ"
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="http://192.168.1.35:8000/api"
-                helper="Đổi khi máy chủ chạy ở địa chỉ khác. Trang sẽ tải lại."
+                placeholder="/api"
+                helper="Mặc định là /api trên chính máy chủ này. Chỉ đổi khi backend nằm ở nơi khác."
               />
               <Button size="sm" variant="secondary" onClick={handleSaveApiUrl} className="w-full">
                 Lưu và tải lại

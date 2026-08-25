@@ -4,6 +4,7 @@ import { devicesApi } from '../../api/devices';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { Notice } from '../ui/Notice';
 
 export interface AddRelayModalProps {
   isOpen: boolean;
@@ -57,11 +58,7 @@ export const AddRelayModal: React.FC<AddRelayModalProps> = ({
       description="Gán kênh chân điều khiển rơ-le cho tải điện (Đèn, Quạt, Ổ cắm)"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="error">{error}</Notice>}
 
         <Input
           label="Tên tải điều khiển"
@@ -82,7 +79,7 @@ export const AddRelayModal: React.FC<AddRelayModalProps> = ({
           required
         />
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+        <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
           </Button>

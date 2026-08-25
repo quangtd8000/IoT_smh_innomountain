@@ -18,6 +18,7 @@ import { IRDevice, IRCommand } from '../../types';
 import { devicesApi } from '../../api/devices';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { Notice } from '../ui/Notice';
 import { AddIRCommandModal } from './AddIRCommandModal';
 
 export interface IRRemoteModalProps {
@@ -93,90 +94,75 @@ export const IRRemoteModal: React.FC<IRRemoteModalProps> = ({
         maxWidth="md"
       >
         <div className="space-y-5">
-          {/* Status feedback */}
-          {statusMessage && (
-            <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs text-center font-medium animate-in fade-in">
-              {statusMessage}
-            </div>
-          )}
+          {statusMessage && <Notice tone="info">{statusMessage}</Notice>}
 
-          {/* Quick Virtual Remote Grid */}
-          <div className="p-5 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-inner flex flex-col items-center gap-4">
-            <div className="flex items-center justify-between w-full pb-2 border-b border-slate-800/80">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Icon size={18} className="text-blue-400" />
-                <span className="text-xs font-semibold">{irDevice.name}</span>
+          <div className="plate p-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-line">
+              <Icon size={18} strokeWidth={1.75} className="text-ink-2" aria-hidden="true" />
+              <span className="text-sm text-ink truncate">{irDevice.name}</span>
+            </div>
+
+            {/* Nút nguồn tách riêng vì đó là nút hay dùng nhất */}
+            {commands.find((c) => c.name.toLowerCase().includes('power')) && (
+              <div className="flex justify-center py-4 border-b border-line">
+                {(() => {
+                  const pwrCmd = commands.find((c) => c.name.toLowerCase().includes('power'))!;
+                  return (
+                    <button
+                      onClick={() => handleSendCommand(pwrCmd)}
+                      disabled={sendingId === pwrCmd.id}
+                      aria-label="Bật hoặc tắt nguồn"
+                      title="Bật hoặc tắt nguồn"
+                      className="h-14 w-14 rounded-full border border-line bg-sunken text-ink flex items-center justify-center transition-colors hover:bg-ink hover:text-ground disabled:opacity-45"
+                    >
+                      <Power size={22} />
+                    </button>
+                  );
+                })()}
               </div>
-              <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                IR Ready
-              </span>
-            </div>
+            )}
 
-            {/* TV Layout or AC Layout or Dynamic Commands */}
-            <div className="w-full space-y-3">
-              {/* Power Button */}
-              {commands.find((c) => c.name.toLowerCase().includes('power')) && (
-                <div className="flex justify-center">
-                  {(() => {
-                    const pwrCmd = commands.find((c) => c.name.toLowerCase().includes('power'))!;
+            <div className="pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-ink-2">Nút lệnh</span>
+                <button
+                  onClick={() => setShowAddCommand(true)}
+                  className="text-sm text-ink-2 hover:text-ink flex items-center gap-1 transition-colors"
+                >
+                  <Plus size={13} aria-hidden="true" />
+                  Thêm lệnh
+                </button>
+              </div>
+
+              {commands.length === 0 ? (
+                <p className="py-4 text-sm text-ink-2">
+                  {loading ? 'Đang tải' : 'Remote này chưa có lệnh nào.'}
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto">
+                  {commands.map((cmd) => {
+                    const isSending = sendingId === cmd.id;
                     return (
                       <button
-                        onClick={() => handleSendCommand(pwrCmd)}
-                        disabled={sendingId === pwrCmd.id}
-                        className="h-14 w-14 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/40 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-all shadow-lg shadow-rose-600/20 active:scale-95 disabled:opacity-50"
-                        title="Bật / Tắt nguồn"
+                        key={cmd.id}
+                        onClick={() => handleSendCommand(cmd)}
+                        disabled={isSending}
+                        className="min-h-14 px-2 py-2 bg-surface border border-line rounded-md text-sm text-ink flex flex-col items-center justify-center gap-0.5 transition-colors hover:bg-sunken disabled:opacity-45"
                       >
-                        <Power size={24} />
+                        <span className="truncate max-w-full">{cmd.name}</span>
+                        {/* Chỉ hiện giao thức khi thực sự có, không mặc định NEC */}
+                        {cmd.protocol && (
+                          <span className="text-xs text-ink-2 truncate">{cmd.protocol}</span>
+                        )}
                       </button>
                     );
-                  })()}
+                  })}
                 </div>
               )}
-
-              {/* All Saved Commands List */}
-              <div className="pt-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-400">Danh Sách Nút Lệnh</span>
-                  <button
-                    onClick={() => setShowAddCommand(true)}
-                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium"
-                  >
-                    <Plus size={13} />
-                    Học/Thêm lệnh mới
-                  </button>
-                </div>
-
-                {commands.length === 0 ? (
-                  <div className="py-6 text-center text-slate-500 text-xs">
-                    {loading ? 'Đang tải danh sách lệnh...' : 'Chưa có lệnh nào được lưu cho remote này.'}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
-                    {commands.map((cmd) => {
-                      const isSending = sendingId === cmd.id;
-                      return (
-                        <button
-                          key={cmd.id}
-                          onClick={() => handleSendCommand(cmd)}
-                          disabled={isSending}
-                          className="p-3 bg-slate-900 hover:bg-blue-600/20 hover:border-blue-500/40 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 disabled:opacity-50"
-                        >
-                          <Zap size={14} className={isSending ? 'text-amber-400 animate-bounce' : 'text-blue-400'} />
-                          <span className="truncate max-w-[100px]">{cmd.name}</span>
-                          <span className="text-[9px] text-slate-500 font-mono">
-                            {cmd.protocol || 'NEC'}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end">
             <Button variant="secondary" onClick={onClose}>
               Đóng
             </Button>

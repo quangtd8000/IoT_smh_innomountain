@@ -180,20 +180,6 @@
     cursor: not-allowed;
   }
 
-  /* ── TẠM THỜI, GỠ Ở ĐỢT SAU ────────────────────────────────────
-     DeviceCard, AnalyticsPage, RoomsDevicesPage chưa thiết kế lại và
-     vẫn dùng .glass-card kèm bảng màu slate-* của bản cũ (chữ sáng).
-     Nếu để .glass-card mất nền thì chữ sáng rơi trên nền sáng và
-     biến mất. Giữ nguyên vẻ tối của chúng để còn đọc được.
-     Xoá khối này khi ba file trên đã chuyển sang .plate.
-     ──────────────────────────────────────────────────────────── */
-  .glass-card {
-    background: #1d201d;
-    border: 1px solid #2c302c;
-    border-radius: var(--radius);
-    color: #edefea;
-  }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

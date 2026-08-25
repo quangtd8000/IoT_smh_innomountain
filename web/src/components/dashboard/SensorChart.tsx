@@ -14,14 +14,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { telemetryApi } from '../../api/telemetry';
 import { SensorData } from '../../types';
 import { cn } from '../../lib/utils';
-
-// Recharts nhận giá trị màu thật, không nhận class Tailwind, nên bảng màu
-// chuỗi số liệu phải khai báo ở đây. Cặp teal/đất phân biệt được bằng cả
-// sắc lẫn độ sáng, nên vẫn đọc được khi in đen trắng hoặc mù màu đỏ-lục.
-const SERIES = {
-  light: { a: '#2F6B6B', b: '#B26A3C', grid: '#DDE1DC', axis: '#5E6663', surface: '#FFFFFF', ink: '#17191A' },
-  dark: { a: '#6FB2AE', b: '#D9915F', grid: '#2C302C', axis: '#9AA29B', surface: '#1D201D', ink: '#EDEFEA' },
-};
+import { CHART } from '../../lib/chartColors';
 
 const METRICS = [
   { id: 'temp_hum', label: 'Nhiệt độ & độ ẩm' },
@@ -39,7 +32,7 @@ export const SensorChart: React.FC = () => {
   const [metric, setMetric] = useState<MetricId>('temp_hum');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const c = SERIES[resolved];
+  const c = CHART[resolved];
 
   const sensorDevices = devices;
 
@@ -108,17 +101,17 @@ export const SensorChart: React.FC = () => {
   const series =
     metric === 'temp_hum'
       ? [
-          { key: 'temperature', name: 'Nhiệt độ (°C)', color: c.a },
-          { key: 'humidity', name: 'Độ ẩm (%)', color: c.b },
+          { key: 'temperature', name: 'Nhiệt độ (°C)', color: c.series[0] },
+          { key: 'humidity', name: 'Độ ẩm (%)', color: c.series[1] },
         ]
       : metric === 'pm_co2'
       ? [
-          { key: 'pm25', name: 'PM2.5 (µg/m³)', color: c.a },
-          { key: 'co2', name: 'CO₂ (ppm)', color: c.b },
+          { key: 'pm25', name: 'PM2.5 (µg/m³)', color: c.series[0] },
+          { key: 'co2', name: 'CO₂ (ppm)', color: c.series[1] },
         ]
       : [
-          { key: 'voc', name: 'VOC', color: c.a },
-          { key: 'nox', name: 'NOx', color: c.b },
+          { key: 'voc', name: 'VOC', color: c.series[0] },
+          { key: 'nox', name: 'NOx', color: c.series[1] },
         ];
 
   return (

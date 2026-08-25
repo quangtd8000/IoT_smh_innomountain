@@ -4,6 +4,7 @@ import { devicesApi } from '../../api/devices';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { Notice } from '../ui/Notice';
 
 export interface AddIRDeviceModalProps {
   isOpen: boolean;
@@ -56,18 +57,14 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
       description="Đăng ký TV, Điều hòa, Quạt để điều khiển qua mắt phát IR của ESP32"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="error">{error}</Notice>}
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-slate-300">ESP32 phát hồng ngoại</label>
+          <label className="block text-sm font-medium text-ink">ESP32 phát hồng ngoại</label>
           <select
             value={selectedDevId}
             onChange={(e) => setSelectedDevId(Number(e.target.value))}
-            className="w-full px-3.5 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            className="w-full min-h-11 px-3 bg-surface border border-line rounded-md text-ink text-base"
           >
             {devices.map((d) => (
               <option key={d.id} value={d.id}>
@@ -87,11 +84,11 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">Loại thiết bị</label>
+            <label className="block text-sm font-medium text-ink">Loại thiết bị</label>
             <select
               value={targetType}
               onChange={(e) => setTargetType(e.target.value as any)}
-              className="w-full px-3.5 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full min-h-11 px-3 bg-surface border border-line rounded-md text-ink text-base"
             >
               <option value="tv">Tivi (TV)</option>
               <option value="air_conditioner">Điều hòa / Máy lạnh (AC)</option>
@@ -118,7 +115,7 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
           helper="Số thứ tự kênh mắt phát IR trên ESP32 (Mặc định 1)"
         />
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+        <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
           </Button>

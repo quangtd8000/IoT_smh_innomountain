@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useHome } from '../context/HomeContext';
 import { DeviceCard } from '../components/devices/DeviceCard';
 import { Button } from '../components/ui/Button';
-import { Plus, Cpu, Layers, Trash2, Home, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Notice } from '../components/ui/Notice';
 import { roomsApi } from '../api/rooms';
+import { roomTone } from '../lib/roomTone';
 import { cn } from '../lib/utils';
 
 export interface RoomsDevicesPageProps {
@@ -15,125 +17,95 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
   onOpenAddDevice,
   onOpenAddRoom,
 }) => {
-  const { devices, rooms, activeHome, isOwnerOrAdmin, refreshHomeDetails } = useHome();
+  const { devices, rooms, isOwnerOrAdmin, refreshHomeDetails } = useHome();
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<number | 'all'>('all');
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredDevices = devices.filter((d) => {
-    if (selectedRoomFilter === 'all') return true;
-    return d.room_id === selectedRoomFilter;
-  });
+  const filteredDevices = devices.filter((d) =>
+    selectedRoomFilter === 'all' ? true : d.room_id === selectedRoomFilter
+  );
 
   const onlineCount = devices.filter((d) => d.status === 'online').length;
 
   const handleDeleteRoom = async (roomId: number, roomName: string) => {
     if (
       !window.confirm(
-        `Bạn có chắc muốn xóa phòng "${roomName}"? Thiết bị trong phòng sẽ chuyển về trạng thái Chưa gán phòng.`
+        `Xoá phòng “${roomName}”? Thiết bị trong phòng sẽ thành chưa gán phòng.`
       )
     ) {
       return;
     }
+    setError(null);
     try {
       await roomsApi.deleteRoom(roomId);
       if (selectedRoomFilter === roomId) setSelectedRoomFilter('all');
       await refreshHomeDetails();
     } catch (err: any) {
-      alert(err.message || 'Không thể xóa phòng');
+      setError(err.message || 'Không xoá được phòng.');
     }
   };
 
+  const tabClass = (isActive: boolean) =>
+    cn(
+      'min-h-9 px-3 rounded-md text-sm whitespace-nowrap flex items-center gap-2',
+      'transition-colors duration-150',
+      isActive ? 'bg-sunken text-ink font-medium' : 'text-ink-2 hover:bg-sunken hover:text-ink'
+    );
+
   return (
-    <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 glass-card rounded-3xl">
-        <div>
-          <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-            <Cpu className="text-cyan-400" size={20} />
-            Quản Lý Thiết Bị & Không Gian
-          </h3>
-          <p className="text-xs text-slate-400 mt-1">
-            Đang quản lý {devices.length} thiết bị phần cứng ({onlineCount} trực tuyến) trong {rooms.length} khu vực
-          </p>
-        </div>
+    <div className="space-y-6 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p className="text-sm text-ink-2 tnum">
+          {devices.length} thiết bị · {onlineCount} trực tuyến · {rooms.length} phòng
+        </p>
 
         {isOwnerOrAdmin && (
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onOpenAddRoom}
-              className="rounded-xl border-slate-700 bg-slate-900 hover:bg-slate-800"
-            >
-              <Plus size={14} />
-              Thêm Phòng
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={onOpenAddRoom}>
+              <Plus size={14} aria-hidden="true" />
+              Thêm phòng
             </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onOpenAddDevice}
-              className="rounded-xl shadow-lg shadow-blue-600/30"
-            >
-              <Plus size={14} />
-              Đăng Ký Thiết Bị
+            <Button variant="primary" size="sm" onClick={onOpenAddDevice}>
+              <Plus size={14} aria-hidden="true" />
+              Thêm thiết bị
             </Button>
           </div>
         )}
       </div>
 
-      {/* Room Tabs Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/80 scrollbar-none">
-        <button
-          onClick={() => setSelectedRoomFilter('all')}
-          className={cn(
-            'px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2',
-            selectedRoomFilter === 'all'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25 border border-blue-500/40'
-              : 'bg-slate-900/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800/80'
-          )}
-        >
-          <span>Tất Cả Thiết Bị</span>
-          <span
-            className={cn(
-              'text-[10px] px-2 py-0.5 rounded-full font-bold',
-              selectedRoomFilter === 'all' ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300'
-            )}
-          >
-            {devices.length}
-          </span>
+      {error && <Notice tone="error">{error}</Notice>}
+
+      <div className="flex items-center gap-1 overflow-x-auto pb-2 border-b border-line">
+        <button onClick={() => setSelectedRoomFilter('all')} className={tabClass(selectedRoomFilter === 'all')}>
+          <span>Tất cả</span>
+          <span className="text-xs text-ink-2 tnum">{devices.length}</span>
         </button>
 
         {rooms.map((r) => {
           const devCount = devices.filter((d) => d.room_id === r.id).length;
           const isSelected = selectedRoomFilter === r.id;
+          const tone = roomTone(r.name);
+          const Icon = tone.icon;
           return (
-            <div key={r.id} className="relative group flex items-center">
+            <div key={r.id} className="flex items-center flex-shrink-0">
               <button
                 onClick={() => setSelectedRoomFilter(r.id)}
-                className={cn(
-                  'px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2',
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25 border border-blue-500/40'
-                    : 'bg-slate-900/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800/80'
-                )}
+                className={tabClass(isSelected)}
+                style={{ ['--tone' as string]: tone.rgb } as React.CSSProperties}
               >
+                <Icon size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: 'rgb(var(--tone))' }} />
                 <span>{r.name}</span>
-                <span
-                  className={cn(
-                    'text-[10px] px-2 py-0.5 rounded-full font-bold',
-                    isSelected ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300'
-                  )}
-                >
-                  {devCount}
-                </span>
+                <span className="text-xs text-ink-2 tnum">{devCount}</span>
               </button>
 
               {isOwnerOrAdmin && (
                 <button
                   onClick={() => handleDeleteRoom(r.id, r.name)}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-opacity ml-1"
-                  title="Xóa phòng"
+                  aria-label={`Xoá phòng ${r.name}`}
+                  title={`Xoá phòng ${r.name}`}
+                  className="p-2 text-ink-2 hover:text-air-bad transition-colors"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={13} />
                 </button>
               )}
             </div>
@@ -141,19 +113,17 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
         })}
       </div>
 
-      {/* Devices Grid */}
       {filteredDevices.length === 0 ? (
-        <div className="py-16 text-center text-slate-500 glass-card rounded-3xl border border-slate-800">
-          <Cpu size={40} className="mx-auto mb-3 opacity-40 text-slate-400" />
-          <p className="text-sm font-bold text-slate-300">Không tìm thấy thiết bị nào trong khu vực này.</p>
+        <div className="plate p-6">
+          <p className="text-sm text-ink">Chưa có thiết bị nào ở đây.</p>
           {isOwnerOrAdmin && (
-            <p className="text-xs text-slate-500 mt-1">
-              Bấm nút "Đăng Ký Thiết Bị" ở góc trên để thêm phần cứng ESP32 mới.
+            <p className="text-sm text-ink-2 mt-1">
+              Bấm “Thêm thiết bị” để đăng ký một mạch ESP32 mới.
             </p>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredDevices.map((dev) => (
             <DeviceCard key={dev.id} device={dev} />
           ))}

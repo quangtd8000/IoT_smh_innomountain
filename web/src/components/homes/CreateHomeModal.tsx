@@ -4,6 +4,7 @@ import { homesApi } from '../../api/homes';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { Notice } from '../ui/Notice';
 
 export interface CreateHomeModalProps {
   isOpen: boolean;
@@ -42,11 +43,7 @@ export const CreateHomeModal: React.FC<CreateHomeModalProps> = ({ isOpen, onClos
       description="Bạn sẽ là chủ sở hữu (Owner) của ngôi nhà này"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="error">{error}</Notice>}
 
         <Input
           label="Tên Ngôi Nhà"
@@ -56,7 +53,7 @@ export const CreateHomeModal: React.FC<CreateHomeModalProps> = ({ isOpen, onClos
           required
         />
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+        <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
           </Button>

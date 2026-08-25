@@ -1,3 +1,4 @@
+import { normalize } from './text';
 import {
   Bed,
   Sofa,
@@ -30,15 +31,6 @@ const RULES: { words: string[]; tone: RoomTone }[] = [
 ];
 
 const DEFAULT_TONE: RoomTone = { rgb: '130 138 132', icon: DoorOpen };
-
-/** Bỏ dấu tiếng Việt về ASCII. NFD không xử lý đ/Đ nên phải thay riêng. */
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
 
 export function roomTone(name: string): RoomTone {
   const n = normalize(name);

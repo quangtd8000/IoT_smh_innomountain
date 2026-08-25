@@ -3,6 +3,7 @@ import { devicesApi } from '../../api/devices';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { Notice } from '../ui/Notice';
 
 export interface AddIRCommandModalProps {
   isOpen: boolean;
@@ -64,11 +65,7 @@ export const AddIRCommandModal: React.FC<AddIRCommandModalProps> = ({
       description="Lưu thông số phát xung IR (Protocol, Address, Command Code)"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="error">{error}</Notice>}
 
         <Input
           label="Tên nút lệnh"
@@ -80,11 +77,11 @@ export const AddIRCommandModal: React.FC<AddIRCommandModalProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">Giao thức (Protocol)</label>
+            <label className="block text-sm font-medium text-ink">Giao thức (Protocol)</label>
             <select
               value={protocol}
               onChange={(e) => setProtocol(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full min-h-11 px-3 bg-surface border border-line rounded-md text-ink text-base"
             >
               <option value="NEC">NEC (Phổ biến nhất)</option>
               <option value="SONY">SONY</option>
@@ -129,7 +126,7 @@ export const AddIRCommandModal: React.FC<AddIRCommandModalProps> = ({
           onChange={(e) => setRepeats(Number(e.target.value))}
         />
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+        <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
           </Button>

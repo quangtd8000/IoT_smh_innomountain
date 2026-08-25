@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: smarthome-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    networks:
+      - emqx_default
+
+  frontend:
+    build:
+      context: ./web
+    container_name: smarthome-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"
+    networks:
+      - emqx_default
+
+networks:
+  emqx_default:
+    external: true

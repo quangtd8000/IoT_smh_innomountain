@@ -8,7 +8,6 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Notice } from '../components/ui/Notice';
 import { ManageMembersModal } from '../components/homes/ManageMembersModal';
-import { getBaseUrl, setBaseUrl } from '../api/client';
 import { cn } from '../lib/utils';
 import { roleLabel } from '../lib/roles';
 
@@ -23,7 +22,6 @@ export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { pref, setPref } = useTheme();
   const [homeName, setHomeName] = useState(activeHome?.name || '');
-  const [apiUrl, setApiUrl] = useState(getBaseUrl());
   const [savingHome, setSavingHome] = useState(false);
   const [homeMsg, setHomeMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -63,11 +61,6 @@ export const SettingsPage: React.FC = () => {
     } catch (err: any) {
       setDeleteError(err.message || 'Không xoá được nhà.');
     }
-  };
-
-  const handleSaveApiUrl = () => {
-    setBaseUrl(apiUrl);
-    window.location.reload();
   };
 
   const account = [
@@ -149,22 +142,6 @@ export const SettingsPage: React.FC = () => {
               {o.label}
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="plate p-5 space-y-4">
-        <h2 className="text-sm font-medium text-ink-2">Máy chủ</h2>
-        <Input
-          label="Địa chỉ máy chủ"
-          value={apiUrl}
-          onChange={(e) => setApiUrl(e.target.value)}
-          placeholder="http://192.168.1.35:8000/api"
-          helper="Đổi khi máy chủ chạy ở địa chỉ khác. Trang sẽ tải lại sau khi lưu."
-        />
-        <div className="flex justify-end">
-          <Button variant="secondary" size="sm" onClick={handleSaveApiUrl}>
-            Lưu và tải lại
-          </Button>
         </div>
       </section>
 

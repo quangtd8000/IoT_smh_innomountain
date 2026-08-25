@@ -3,13 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmartHome - Quản Lý & Điều Khiển Nhà Thông Minh</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>SmartHome</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f2f3f0" />
+    <script>
+      // Đặt theme trước khi vẽ khung hình đầu tiên, tránh nháy sáng rồi tối.
+      // Phải khớp với STORAGE_KEY trong src/context/ThemeContext.tsx
+      // Thẻ theme-color ở trên phải đứng TRƯỚC đoạn này thì querySelector mới thấy.
+      (function () {
+        try {
+          var p = localStorage.getItem('smarthome-theme');
+          var t =
+            p === 'light' || p === 'dark'
+              ? p
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          document.documentElement.setAttribute('data-theme', t);
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', t === 'dark' ? '#141614' : '#f2f3f0');
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-slate-950 text-slate-100 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

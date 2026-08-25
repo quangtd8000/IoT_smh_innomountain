@@ -7,14 +7,18 @@ export interface SwitchProps {
   disabled?: boolean;
   className?: string;
   size?: 'sm' | 'md';
+  'aria-label'?: string;
 }
 
+// Toggle cho hàng danh sách. Lưới công tắc lớn dùng phím rocker
+// trong components/dashboard/SwitchPlate.tsx, không dùng cái này.
 export const Switch: React.FC<SwitchProps> = ({
   checked,
   onChange,
   disabled = false,
   className,
   size = 'md',
+  ...props
 }) => {
   return (
     <button
@@ -24,22 +28,20 @@ export const Switch: React.FC<SwitchProps> = ({
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
       className={cn(
-        'relative inline-flex flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed',
-        checked ? 'bg-blue-600' : 'bg-slate-750 bg-slate-700',
-        size === 'sm' ? 'h-5 w-9 p-0.5' : 'h-6 w-11 p-1',
+        'relative inline-flex flex-shrink-0 items-center rounded-full',
+        'transition-colors duration-150 disabled:opacity-45 disabled:cursor-not-allowed',
+        checked ? 'bg-live' : 'bg-ink-2/35',
+        size === 'sm' ? 'h-5 w-9 p-0.5' : 'h-6 w-11 p-0.5',
         className
       )}
+      {...props}
     >
       <span
         aria-hidden="true"
         className={cn(
-          'pointer-events-none inline-block rounded-full bg-white shadow transform ring-0 transition duration-200 ease-in-out',
-          size === 'sm' ? 'h-4 w-4' : 'h-4 w-4',
-          checked
-            ? size === 'sm'
-              ? 'translate-x-4'
-              : 'translate-x-5'
-            : 'translate-x-0'
+          'pointer-events-none inline-block rounded-full bg-surface ring-1 ring-ink/10 transition-transform duration-150',
+          size === 'sm' ? 'h-4 w-4' : 'h-5 w-5',
+          checked ? (size === 'sm' ? 'translate-x-4' : 'translate-x-5') : 'translate-x-0'
         )}
       />
     </button>

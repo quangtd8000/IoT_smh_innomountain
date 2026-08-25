@@ -1,143 +1,65 @@
-import React, { useState } from 'react';
-import {
-  RefreshCw,
-  LogOut,
-  User as UserIcon,
-  Shield,
-  Server,
-  Activity,
-  Sparkles,
-  Wifi,
-} from 'lucide-react';
+import React from 'react';
+import { RefreshCw, LogOut, Menu, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHome } from '../../context/HomeContext';
-import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
-import { getBaseUrl, setBaseUrl } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../lib/utils';
 
 export interface HeaderProps {
   title: string;
   onOpenCreateHome?: () => void;
+  onOpenMenu?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title }) => {
+export const Header: React.FC<HeaderProps> = ({ title, onOpenMenu }) => {
   const { user, logout } = useAuth();
-  const { activeHome, userRole, refreshHomeDetails, isRefreshing } = useHome();
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [apiUrl, setApiUrl] = useState(getBaseUrl());
+  const { refreshHomeDetails, isRefreshing } = useHome();
+  const { resolved, toggle } = useTheme();
 
-  const handleSaveApiUrl = () => {
-    setBaseUrl(apiUrl);
-    setShowConfigModal(false);
-    window.location.reload();
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'owner':
-        return 'warning';
-      case 'admin':
-        return 'info';
-      default:
-        return 'neutral';
-    }
-  };
+  const iconButton =
+    'p-2.5 rounded-md text-ink-2 hover:text-ink hover:bg-sunken transition-colors duration-150';
 
   return (
-    <>
-      <header className="h-16 bg-slate-950/70 border-b border-slate-800/80 backdrop-blur-2xl px-6 flex items-center justify-between sticky top-0 z-30">
-        {/* Page Title & Active Home Name */}
-        <div className="flex items-center gap-3">
-          <h2 className="text-base sm:text-lg font-extrabold text-slate-100 tracking-tight">{title}</h2>
-          {activeHome && (
-            <div className="hidden sm:flex items-center gap-2 border-l border-slate-800 pl-3">
-              <span className="text-xs text-slate-400 font-medium">{activeHome.name}</span>
-              <Badge variant={getRoleBadgeVariant(userRole)} className="text-[9px] uppercase font-bold tracking-wider rounded-lg">
-                <Shield size={10} />
-                {userRole}
-              </Badge>
-            </div>
-          )}
-        </div>
+    <header className="h-16 flex-shrink-0 bg-surface border-b border-line px-3 sm:px-5 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-1 min-w-0">
+        <button
+          onClick={onOpenMenu}
+          aria-label="Mở menu"
+          className={cn(iconButton, 'md:hidden')}
+        >
+          <Menu size={20} />
+        </button>
+        <h2 className="font-display text-lg font-semibold text-ink truncate">{title}</h2>
+      </div>
 
-        {/* Action Controls & User info */}
-        <div className="flex items-center gap-2.5">
-          {/* API Server Endpoint Config */}
-          <button
-            onClick={() => setShowConfigModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-mono"
-            title="Cấu hình địa chỉ máy chủ API"
-          >
-            <Server size={14} className="text-cyan-400" />
-            <span className="hidden md:inline text-[11px] text-slate-300">
-              {apiUrl.replace('http://', '').replace('/api', '')}
-            </span>
-          </button>
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={toggle}
+          className={iconButton}
+          aria-label={resolved === 'dark' ? 'Chuyển sang nền sáng' : 'Chuyển sang nền tối'}
+          title={resolved === 'dark' ? 'Chuyển sang nền sáng' : 'Chuyển sang nền tối'}
+        >
+          {resolved === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
 
-          {/* Refresh button */}
-          <button
-            onClick={() => refreshHomeDetails()}
-            disabled={isRefreshing}
-            className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
-            title="Làm mới toàn bộ trạng thái"
-          >
-            <RefreshCw size={15} className={isRefreshing ? 'animate-spin text-cyan-400' : ''} />
-          </button>
+        <button
+          onClick={() => refreshHomeDetails()}
+          disabled={isRefreshing}
+          className={cn(iconButton, 'disabled:opacity-45')}
+          aria-label="Làm mới"
+          title="Làm mới"
+        >
+          <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : undefined} />
+        </button>
 
-          {/* User Profile Info */}
-          <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/20">
-              {(user?.full_name || user?.username || 'U')[0].toUpperCase()}
-            </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-slate-100 leading-tight">
-                {user?.full_name || user?.username}
-              </p>
-              <p className="text-[10px] text-cyan-400 font-mono leading-tight truncate max-w-[120px]">
-                {user?.email || 'Active User'}
-              </p>
-            </div>
+        <span className="hidden sm:block text-sm text-ink-2 truncate max-w-[140px] px-2">
+          {user?.full_name || user?.username}
+        </span>
 
-            {/* Logout Button */}
-            <button
-              onClick={logout}
-              className="p-2 ml-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
-              title="Đăng xuất"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Server Endpoint Config Modal */}
-      <Modal
-        isOpen={showConfigModal}
-        onClose={() => setShowConfigModal(false)}
-        title="Cấu hình kết nối Backend API"
-        description="Địa chỉ máy chủ FastAPI REST API & WebSocket"
-      >
-        <div className="space-y-4">
-          <Input
-            label="API Base URL Prefix"
-            value={apiUrl}
-            onChange={(e) => setApiUrl(e.target.value)}
-            placeholder="http://192.168.1.35:8000/api"
-            helper="Mặc định: http://192.168.1.35:8000/api"
-          />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setShowConfigModal(false)}>
-              Hủy
-            </Button>
-            <Button variant="primary" onClick={handleSaveApiUrl}>
-              Lưu & Tải lại
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
+        <button onClick={logout} className={iconButton} aria-label="Đăng xuất" title="Đăng xuất">
+          <LogOut size={18} />
+        </button>
+      </div>
+    </header>
   );
 };

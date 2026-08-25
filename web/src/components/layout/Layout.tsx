@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { BottomNav } from './BottomNav';
+import { pageTitle } from './nav';
 
 export interface LayoutProps {
   currentPage: string;
@@ -15,39 +17,29 @@ export const Layout: React.FC<LayoutProps> = ({
   onOpenCreateHome,
   children,
 }) => {
-  const getPageTitle = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return 'Bảng Điều Khiển Tổng Quan';
-      case 'devices':
-        return 'Quản Lý Phòng & Thiết Bị';
-      case 'ir':
-        return 'Bộ Điều Khiển Hồng Ngoại (IR)';
-      case 'analytics':
-        return 'Phân Tích Dữ Liệu Cảm Biến';
-      case 'settings':
-        return 'Cài Đặt Hệ Thống';
-      default:
-        return 'Smart Home Control';
-    }
-  };
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
-      {/* Left Sidebar */}
+    <div className="flex h-screen bg-ground text-ink overflow-hidden">
       <Sidebar
         currentPage={currentPage}
         onSelectPage={onSelectPage}
         onOpenCreateHome={onOpenCreateHome}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header title={getPageTitle()} onOpenCreateHome={onOpenCreateHome} />
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          {children}
-        </main>
+        <Header
+          title={pageTitle(currentPage)}
+          onOpenCreateHome={onOpenCreateHome}
+          onOpenMenu={() => setDrawerOpen(true)}
+        />
+        {/* pb-20 chừa chỗ cho tab dưới trên điện thoại */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6">{children}</main>
       </div>
+
+      <BottomNav currentPage={currentPage} onSelectPage={onSelectPage} />
     </div>
   );
 };

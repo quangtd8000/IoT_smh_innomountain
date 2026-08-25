@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { HomeProvider } from './context/HomeContext';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/LoginPage';
@@ -25,11 +26,8 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-medium">Đang khởi tạo SmartHome...</p>
-        </div>
+      <div className="min-h-screen bg-ground flex items-center justify-center">
+        <p className="text-sm text-ink-2">Đang tải</p>
       </div>
     );
   }
@@ -92,9 +90,11 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

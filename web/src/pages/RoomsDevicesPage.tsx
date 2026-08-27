@@ -24,24 +24,26 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedRoom = rooms.find((r) => r.id === selectedRoomFilter);
+
   const filteredDevices = devices.filter((d) =>
     selectedRoomFilter === 'all' ? true : d.room_id === selectedRoomFilter
   );
 
   const onlineCount = devices.filter((d) => d.status === 'online').length;
 
-  const handleDeleteRoom = async (roomId: number, roomName: string) => {
+  const handleDeleteRoom = async (room: Room) => {
     if (
       !window.confirm(
-        `Xoá phòng “${roomName}”? Thiết bị trong phòng sẽ trở về trạng thái chưa gán phòng.`
+        `Xoá phòng “${room.name}”? Các thiết bị trong phòng này sẽ được chuyển thành chưa gán phòng.`
       )
     ) {
       return;
     }
     setError(null);
     try {
-      await roomsApi.deleteRoom(roomId);
-      if (selectedRoomFilter === roomId) setSelectedRoomFilter('all');
+      await roomsApi.deleteRoom(room.id);
+      setSelectedRoomFilter('all');
       await refreshHomeDetails();
     } catch (err: any) {
       setError(err.message || 'Không xoá được phòng.');
@@ -64,6 +66,30 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
 
         {isOwnerOrAdmin && (
           <div className="flex items-center gap-2">
+            {selectedRoom && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingRoom(selectedRoom)}
+                  className="text-xs text-ink-2 hover:text-ink flex items-center gap-1.5"
+                >
+                  <Pencil size={13} />
+                  <span>Đổi tên phòng</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteRoom(selectedRoom)}
+                  className="text-xs text-ink-2 hover:text-air-bad flex items-center gap-1.5"
+                >
+                  <Trash2 size={13} />
+                  <span>Xoá phòng</span>
+                </Button>
+                <div className="h-4 w-px bg-line" />
+              </>
+            )}
+
             <Button variant="secondary" size="sm" onClick={onOpenAddRoom}>
               <Plus size={14} aria-hidden="true" />
               Thêm phòng
@@ -78,6 +104,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
 
       {error && <Notice tone="error">{error}</Notice>}
 
+      {/* Danh sách tab phòng sạch sẽ, không có icon rác */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-line">
         <button onClick={() => setSelectedRoomFilter('all')} className={tabClass(selectedRoomFilter === 'all')}>
           <span>Tất cả</span>
@@ -90,40 +117,16 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
           const tone = roomTone(r.name);
           const Icon = tone.icon;
           return (
-            <div key={r.id} className="flex items-center flex-shrink-0 bg-surface/50 rounded-md border border-line/60">
-              <button
-                onClick={() => setSelectedRoomFilter(r.id)}
-                className={tabClass(isSelected)}
-                style={{ ['--tone' as string]: tone.rgb } as React.CSSProperties}
-              >
-                <Icon size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: 'rgb(var(--tone))' }} />
-                <span>{r.name}</span>
-                <span className="text-xs text-ink-2 tnum">{devCount}</span>
-              </button>
-
-              {isOwnerOrAdmin && (
-                <div className="flex items-center pr-1">
-                  <button
-                    type="button"
-                    onClick={() => setEditingRoom(r)}
-                    aria-label={`Đổi tên phòng ${r.name}`}
-                    title={`Đổi tên phòng ${r.name}`}
-                    className="p-1.5 text-ink-2/60 hover:text-ink transition-colors"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteRoom(r.id, r.name)}
-                    aria-label={`Xoá phòng ${r.name}`}
-                    title={`Xoá phòng ${r.name}`}
-                    className="p-1.5 text-ink-2/60 hover:text-air-bad transition-colors"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              key={r.id}
+              onClick={() => setSelectedRoomFilter(r.id)}
+              className={tabClass(isSelected)}
+              style={{ ['--tone' as string]: tone.rgb } as React.CSSProperties}
+            >
+              <Icon size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: 'rgb(var(--tone))' }} />
+              <span>{r.name}</span>
+              <span className="text-xs text-ink-2 tnum">{devCount}</span>
+            </button>
           );
         })}
       </div>
@@ -133,7 +136,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
           <p className="text-sm text-ink">Chưa có thiết bị nào ở phòng này.</p>
           {isOwnerOrAdmin && (
             <p className="text-sm text-ink-2 mt-1">
-              Bấm “Thêm thiết bị” để thêm thiết bị mới hoặc chuyển thiết bị vào phòng này.
+              Bấm “Thêm thiết bị” để thêm thiết bị mới hoặc bấm nút bút chì ✏️ trên thẻ thiết bị để chuyển vào phòng này.
             </p>
           )}
         </div>

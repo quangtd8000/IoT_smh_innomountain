@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Pencil, Sliders, Settings2, MapPin } from 'lucide-react';
-import { Device, RelayChannel } from '../../types';
+import { Plus, Trash2, Pencil, Sliders, MapPin } from 'lucide-react';
+import { Device } from '../../types';
 import { useHome } from '../../context/HomeContext';
 import { devicesApi } from '../../api/devices';
 import { Button } from '../ui/Button';
 import { Switch } from '../ui/Switch';
 import { Notice } from '../ui/Notice';
 import { AddRelayModal } from './AddRelayModal';
-import { EditRelayModal } from './EditRelayModal';
 import { EditDeviceModal } from './EditDeviceModal';
 import { formatRelativeTime, cn } from '../../lib/utils';
 
@@ -19,9 +18,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
   const { isOwnerOrAdmin, refreshHomeDetails, toggleRelayChannel, rooms } = useHome();
   const [showAddRelay, setShowAddRelay] = useState(false);
   const [showEditDevice, setShowEditDevice] = useState(false);
-  const [editingChannel, setEditingChannel] = useState<RelayChannel | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [deletingChannelId, setDeletingChannelId] = useState<number | null>(null);
 
   const room = rooms.find((r) => r.id === device.room_id);
   const isOnline = device.status === 'online';
@@ -39,77 +36,54 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
     }
   };
 
-  const handleDeleteChannel = async (ch: RelayChannel) => {
-    if (!window.confirm(`Xoá công tắc “${ch.name}” (Kênh ${ch.channel})?`)) return;
-    setActionError(null);
-    setDeletingChannelId(ch.id);
-    try {
-      await devicesApi.deleteRelayChannel(device.id, ch.id);
-      await refreshHomeDetails();
-    } catch (err: any) {
-      setActionError(err.message || 'Không thể xoá công tắc.');
-    } finally {
-      setDeletingChannelId(null);
-    }
-  };
-
   return (
     <>
       <div className="plate flex flex-col p-0">
+        {/* Header thẻ: Tên thiết bị, trạng thái và DUY NHẤT 1 nút Bút chì chỉnh sửa */}
         <div className="px-4 py-3 border-b border-line">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-medium text-ink truncate">{device.name}</h3>
-                {isOwnerOrAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setShowEditDevice(true)}
-                    className="text-ink-2/60 hover:text-ink p-1 rounded transition-colors"
-                    title="Đổi tên hoặc chuyển phòng"
-                    aria-label="Cài đặt thiết bị"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                )}
-              </div>
+              <h3 className="text-sm font-medium text-ink truncate">{device.name}</h3>
               <p className="text-xs text-ink-2 truncate">{device.device_uid}</p>
             </div>
 
-            {/* Trạng thái trực tuyến / offline */}
-            <span className="flex items-center gap-1.5 text-xs flex-shrink-0">
-              <span
-                aria-hidden="true"
-                className={cn('h-1.5 w-1.5 rounded-full', isOnline ? 'bg-ink' : 'bg-ink-2/40')}
-              />
-              <span className={isOnline ? 'text-ink' : 'text-ink-2'}>
-                {isOnline ? 'Trực tuyến' : 'Mất kết nối'}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Trạng thái trực tuyến / offline */}
+              <span className="flex items-center gap-1.5 text-xs">
+                <span
+                  aria-hidden="true"
+                  className={cn('h-1.5 w-1.5 rounded-full', isOnline ? 'bg-ink' : 'bg-ink-2/40')}
+                />
+                <span className={isOnline ? 'text-ink' : 'text-ink-2'}>
+                  {isOnline ? 'Trực tuyến' : 'Mất kết nối'}
+                </span>
               </span>
-            </span>
+
+              {/* 1 nút Bút chì duy nhất để cài đặt / đổi phòng / đổi tên toàn bộ thiết bị */}
+              {isOwnerOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowEditDevice(true)}
+                  className="p-1.5 rounded text-ink-2 hover:text-ink hover:bg-ink/5 transition-colors"
+                  title="Cài đặt, chuyển phòng và đổi tên"
+                  aria-label="Cài đặt thiết bị"
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => isOwnerOrAdmin && setShowEditDevice(true)}
-              className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
-                room
-                  ? 'bg-ink/5 text-ink hover:bg-ink/10'
-                  : 'bg-air-ok/10 text-ink-2 hover:text-ink'
-              )}
-              title={isOwnerOrAdmin ? 'Bấm để đổi phòng' : undefined}
-            >
-              <MapPin size={11} className="text-ink-2" />
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-ink-2">
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={11} className="text-ink-2/80" />
               <span>{room?.name || 'Chưa gán phòng'}</span>
-              {isOwnerOrAdmin && <span className="text-[10px] text-ink-2">· Đổi</span>}
-            </button>
-            <span className="text-xs text-ink-2">
-              {formatRelativeTime(device.last_seen)}
             </span>
+            <span>{formatRelativeTime(device.last_seen)}</span>
           </div>
         </div>
 
+        {/* Nội dung: Danh sách công tắc sạch sẽ, không icon rác */}
         <div className="px-4 py-3 border-b border-line flex-1">
           {isRelayNode ? (
             <>
@@ -129,53 +103,28 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
               </div>
 
               {channels.length > 0 ? (
-                <ul className="space-y-1.5">
+                <ul className="space-y-1">
                   {channels.map((ch) => (
                     <li
                       key={ch.id}
-                      className="flex items-center justify-between gap-2.5 py-1 px-1.5 rounded hover:bg-ink/[0.02] transition-colors"
+                      className="flex items-center justify-between gap-3 py-1.5 px-2 rounded hover:bg-ink/[0.02] transition-colors"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-ink-2 bg-ink/5 px-1.5 py-0.5 rounded flex-shrink-0">
                           #{ch.channel}
                         </span>
                         <span className="text-sm text-ink truncate" title={ch.name}>
                           {ch.name}
                         </span>
-                        {isOwnerOrAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => setEditingChannel(ch)}
-                            className="text-ink-2/60 hover:text-ink p-1 rounded transition-colors flex-shrink-0"
-                            title="Đổi tên công tắc"
-                            aria-label={`Đổi tên ${ch.name}`}
-                          >
-                            <Pencil size={12} />
-                          </button>
-                        )}
-                      </div>
+                      </span>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {isOwnerOrAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteChannel(ch)}
-                            disabled={deletingChannelId === ch.id}
-                            className="text-ink-2/60 hover:text-air-bad p-1 rounded transition-colors"
-                            title="Xoá công tắc này"
-                            aria-label={`Xoá ${ch.name}`}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                        <Switch
-                          size="sm"
-                          checked={ch.state}
-                          aria-label={ch.name}
-                          disabled={!isOnline}
-                          onChange={() => toggleRelayChannel(device.id, ch.id, ch.state)}
-                        />
-                      </div>
+                      <Switch
+                        size="sm"
+                        checked={ch.state}
+                        aria-label={ch.name}
+                        disabled={!isOnline}
+                        onChange={() => toggleRelayChannel(device.id, ch.id, ch.state)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -213,15 +162,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
         )}
 
         {isOwnerOrAdmin && (
-          <div className="px-4 py-2.5 flex items-center justify-between border-t border-line/40">
-            <button
-              type="button"
-              onClick={() => setShowEditDevice(true)}
-              className="text-xs text-ink-2 hover:text-ink flex items-center gap-1 transition-colors"
-            >
-              <Settings2 size={13} />
-              <span>Chuyển phòng / Đổi tên</span>
-            </button>
+          <div className="px-4 py-2 flex items-center justify-end border-t border-line/40">
             <Button
               variant="ghost"
               size="sm"
@@ -243,15 +184,6 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
           onClose={() => setShowAddRelay(false)}
           deviceId={device.id}
           existingChannels={channels.map((c) => c.channel)}
-        />
-      )}
-
-      {editingChannel && (
-        <EditRelayModal
-          isOpen={editingChannel !== null}
-          onClose={() => setEditingChannel(null)}
-          deviceId={device.id}
-          channel={editingChannel}
         />
       )}
 

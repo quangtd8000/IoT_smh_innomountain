@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Tv, AirVent, Fan, Radio } from 'lucide-react';
-import { MetricCards } from '../components/dashboard/MetricCards';
 import { SwitchPlate } from '../components/dashboard/SwitchPlate';
 import { SensorChart } from '../components/dashboard/SensorChart';
 import { AirQualityGauge } from '../components/dashboard/AirQualityGauge';
@@ -108,10 +107,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenCreateHome }
 
   return (
     <div className="space-y-7 max-w-6xl">
-      {/* 1. Dòng trạng thái tổng quan */}
-      <MetricCards />
-
-      {/* 2. Thanh chuyển đổi giữa các phòng trong nhà */}
+      {/* 1. Thanh chuyển đổi giữa các phòng trong nhà */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-line">
         <button
           onClick={() => setSelectedRoomFilter('all')}

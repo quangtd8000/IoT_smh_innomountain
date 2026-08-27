@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useHome } from '../../context/HomeContext';
 import { devicesApi } from '../../api/devices';
-import { Device, RelayChannel } from '../../types';
+import { Device } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -19,7 +19,7 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
   onClose,
   device,
 }) => {
-  const { rooms, refreshHomeDetails } = useHome();
+  const { rooms, updateDevice, updateRelayChannelName } = useHome();
   const [name, setName] = useState(device.name);
   const [roomId, setRoomId] = useState<string>(device.room_id ? String(device.room_id) : '');
   
@@ -63,9 +63,9 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
     setLoading(true);
     setError('');
     try {
-      // 1. Cập nhật tên thiết bị và phòng
+      // 1. Cập nhật tên thiết bị và phòng (Optimistic update chạy ngay tức thì!)
       const promises: Promise<any>[] = [
-        devicesApi.updateDevice(device.id, {
+        updateDevice(device.id, {
           name: name.trim(),
           room_id: roomId ? Number(roomId) : null,
         }),
@@ -81,14 +81,11 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
         if (deletedChannelIds.includes(ch.id)) continue;
         const currentName = channelNames[ch.id]?.trim();
         if (currentName && currentName !== ch.name) {
-          promises.push(
-            devicesApi.updateRelayChannel(device.id, ch.id, { name: currentName })
-          );
+          promises.push(updateRelayChannelName(device.id, ch.id, currentName));
         }
       }
 
       await Promise.all(promises);
-      await refreshHomeDetails();
       onClose();
     } catch (err: any) {
       setError(err.message || 'Không thể cập nhật thiết bị');

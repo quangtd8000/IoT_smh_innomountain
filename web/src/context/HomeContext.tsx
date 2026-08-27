@@ -19,6 +19,8 @@ interface HomeContextType {
   refreshHomes: () => Promise<void>;
   refreshHomeDetails: () => Promise<void>;
   toggleRelayChannel: (deviceId: number, channelId: number, currentState: boolean) => Promise<void>;
+  updateDevice: (deviceId: number, payload: { name?: string; room_id?: number | null }) => Promise<Device>;
+  updateRelayChannelName: (deviceId: number, channelId: number, name: string) => Promise<void>;
 }
 
 const HomeContext = createContext<HomeContextType | undefined>(undefined);
@@ -172,6 +174,58 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Device update handler with optimistic UI update
+  const updateDevice = async (deviceId: number, payload: { name?: string; room_id?: number | null }) => {
+    // Optimistic update
+    setDevices((prev) =>
+      prev.map((dev) => {
+        if (dev.id !== deviceId) return dev;
+        return {
+          ...dev,
+          name: payload.name !== undefined ? payload.name.trim() : dev.name,
+          room_id: payload.room_id !== undefined ? payload.room_id : dev.room_id,
+        };
+      })
+    );
+
+    try {
+      const updated = await devicesApi.updateDevice(deviceId, payload);
+      setDevices((prev) =>
+        prev.map((dev) => (dev.id === deviceId ? { ...dev, ...updated } : dev))
+      );
+      refreshHomeDetails(true);
+      return updated;
+    } catch (error) {
+      console.error('Failed to update device:', error);
+      refreshHomeDetails(true);
+      throw error;
+    }
+  };
+
+  // Relay name update handler with optimistic UI update
+  const updateRelayChannelName = async (deviceId: number, channelId: number, name: string) => {
+    setDevices((prev) =>
+      prev.map((dev) => {
+        if (dev.id !== deviceId) return dev;
+        return {
+          ...dev,
+          relay_channels: dev.relay_channels?.map((ch) =>
+            ch.id === channelId ? { ...ch, name: name.trim() } : ch
+          ),
+        };
+      })
+    );
+
+    try {
+      await devicesApi.updateRelayChannel(deviceId, channelId, { name: name.trim() });
+      refreshHomeDetails(true);
+    } catch (error) {
+      console.error('Failed to update relay name:', error);
+      refreshHomeDetails(true);
+      throw error;
+    }
+  };
+
   return (
     <HomeContext.Provider
       value={{
@@ -188,6 +242,8 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshHomes,
         refreshHomeDetails: () => refreshHomeDetails(false),
         toggleRelayChannel,
+        updateDevice,
+        updateRelayChannelName,
       }}
     >
       {children}

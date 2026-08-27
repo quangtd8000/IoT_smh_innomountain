@@ -90,7 +90,7 @@ export const IRRemoteModal: React.FC<IRRemoteModalProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         title={`Điều Khiển: ${irDevice.name}`}
-        description={`${irDevice.brand ? irDevice.brand.toUpperCase() : ''} (${irDevice.target_type.toUpperCase()}) - Mắt phát #${irDevice.emitter_pin || 1}`}
+        description={irDevice.brand ? `${irDevice.brand} · ${irDevice.target_type === 'tv' ? 'Tivi' : irDevice.target_type === 'air_conditioner' ? 'Điều hoà' : irDevice.target_type === 'fan' ? 'Quạt' : 'Thiết bị khác'}` : (irDevice.target_type === 'tv' ? 'Tivi' : irDevice.target_type === 'air_conditioner' ? 'Điều hoà' : irDevice.target_type === 'fan' ? 'Quạt' : 'Thiết bị khác')}
         maxWidth="md"
       >
         <div className="space-y-5">

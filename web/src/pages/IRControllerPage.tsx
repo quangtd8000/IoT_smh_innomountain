@@ -58,7 +58,7 @@ export const IRControllerPage: React.FC = () => {
           <p className="text-sm text-ink">Chưa có remote nào.</p>
           {isOwnerOrAdmin && (
             <p className="text-sm text-ink-2 mt-1">
-              Bấm “Thêm remote” để gán một remote vào mắt phát của ESP32.
+              Bấm “Thêm remote” để thêm điều khiển cho TV, điều hoà hoặc quạt.
             </p>
           )}
         </div>
@@ -79,9 +79,8 @@ export const IRControllerPage: React.FC = () => {
                 </div>
 
                 <div className="px-4 py-3 border-b border-line flex-1">
-                  <p className="text-xs text-ink-2">Phát từ</p>
+                  <p className="text-xs text-ink-2">Bộ phát tín hiệu</p>
                   <p className="text-sm text-ink truncate">{parentDeviceName}</p>
-                  <p className="text-xs text-ink-2 mt-1 tnum">Chân {ir.emitter_pin || 1}</p>
                 </div>
 
                 <div className="px-4 py-3">

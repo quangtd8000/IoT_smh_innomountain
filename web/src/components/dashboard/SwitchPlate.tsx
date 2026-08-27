@@ -75,7 +75,7 @@ export const SwitchPlate: React.FC = () => {
     return (
       <div className="plate p-5">
         <p className="text-sm text-ink-2">
-          Chưa có công tắc nào. Thêm một thiết bị relay để điều khiển từ đây.
+          Chưa có công tắc nào. Thêm công tắc từ mục Phòng & Thiết bị để điều khiển từ đây.
         </p>
       </div>
     );

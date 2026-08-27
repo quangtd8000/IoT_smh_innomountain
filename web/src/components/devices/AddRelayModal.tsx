@@ -54,28 +54,28 @@ export const AddRelayModal: React.FC<AddRelayModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm Kênh Relay"
-      description="Gán kênh chân điều khiển rơ-le cho tải điện (Đèn, Quạt, Ổ cắm)"
+      title="Thêm công tắc điều khiển"
+      description="Thêm công tắc cho đèn, quạt, ổ cắm hoặc thiết bị điện trong phòng."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Notice tone="error">{error}</Notice>}
 
         <Input
-          label="Tên tải điều khiển"
-          placeholder="VD: Đèn trần, Quạt thông gió..."
+          label="Tên thiết bị / Công tắc"
+          placeholder="VD: Đèn trần, Quạt thông gió, Đèn ngủ..."
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
 
         <Input
-          label="Số thứ tự kênh (Channel #)"
+          label="Số thứ tự công tắc"
           type="number"
           min="1"
           max="32"
           value={channel}
           onChange={(e) => setChannel(Number(e.target.value))}
-          helper="Số thứ tự kênh relay trên bo mạch ESP32 (1, 2, 3, 4...)"
+          helper="Vị trí thứ tự của công tắc trên thiết bị (1, 2, 3...)"
           required
         />
 
@@ -84,7 +84,7 @@ export const AddRelayModal: React.FC<AddRelayModalProps> = ({
             Hủy
           </Button>
           <Button type="submit" variant="primary" loading={loading}>
-            Thêm Kênh
+            Thêm công tắc
           </Button>
         </div>
       </form>

@@ -25,7 +25,7 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDevId || !name.trim()) {
-      setError('Vui lòng chọn thiết bị ESP32 và nhập tên thiết bị hồng ngoại');
+      setError('Vui lòng chọn bộ phát và nhập tên điều khiển');
       return;
     }
 
@@ -43,7 +43,7 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
       setBrand('');
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Không thể tạo thiết bị IR');
+      setError(err.message || 'Không thể tạo điều khiển');
     } finally {
       setLoading(false);
     }
@@ -53,14 +53,14 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm Thiết Bị Hồng Ngoại (IR Remote)"
-      description="Đăng ký TV, Điều hòa, Quạt để điều khiển qua mắt phát IR của ESP32"
+      title="Thêm Remote Điều Khiển"
+      description="Thêm điều khiển từ xa cho TV, Điều hòa hoặc Quạt."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Notice tone="error">{error}</Notice>}
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-ink">ESP32 phát hồng ngoại</label>
+          <label className="block text-sm font-medium text-ink">Bộ phát tín hiệu</label>
           <select
             value={selectedDevId}
             onChange={(e) => setSelectedDevId(Number(e.target.value))}
@@ -68,15 +68,15 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
           >
             {devices.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name} ({d.device_uid})
+                {d.name}
               </option>
             ))}
           </select>
         </div>
 
         <Input
-          label="Tên thiết bị hiển thị"
-          placeholder="VD: TV Samsung Phòng Khách, Điều hòa Daikin 12000BTU..."
+          label="Tên điều khiển"
+          placeholder="VD: TV Phòng Khách, Điều hòa Daikin, Quạt cây..."
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -91,36 +91,26 @@ export const AddIRDeviceModal: React.FC<AddIRDeviceModalProps> = ({ isOpen, onCl
               className="w-full min-h-11 px-3 bg-surface border border-line rounded-md text-ink text-base"
             >
               <option value="tv">Tivi (TV)</option>
-              <option value="air_conditioner">Điều hòa / Máy lạnh (AC)</option>
-              <option value="fan">Quạt điện (Fan)</option>
-              <option value="custom">Tùy biến khác (Custom)</option>
+              <option value="air_conditioner">Điều hòa / Máy lạnh</option>
+              <option value="fan">Quạt điện</option>
+              <option value="custom">Thiết bị khác</option>
             </select>
           </div>
 
           <Input
-            label="Hãng sản xuất (Brand)"
+            label="Hãng sản xuất"
             placeholder="Samsung, LG, Daikin, Panasonic..."
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
           />
         </div>
 
-        <Input
-          label="Chân mắt phát (Emitter Pin / Channel)"
-          type="number"
-          min="1"
-          max="16"
-          value={emitterPin}
-          onChange={(e) => setEmitterPin(Number(e.target.value))}
-          helper="Số thứ tự kênh mắt phát IR trên ESP32 (Mặc định 1)"
-        />
-
         <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
           </Button>
           <Button type="submit" variant="primary" loading={loading}>
-            Thêm Thiết Bị IR
+            Thêm Remote
           </Button>
         </div>
       </form>

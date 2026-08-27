@@ -75,26 +75,26 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm thiết bị"
-      description="Đăng ký một mạch ESP32 hoặc cụm cảm biến vào nhà."
+      title="Thêm thiết bị mới"
+      description="Thêm thiết bị thông minh hoặc cụm cảm biến vào ngôi nhà."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Notice tone="error">{error}</Notice>}
 
         <Input
           label="Tên thiết bị"
-          placeholder="Cảm biến phòng khách"
+          placeholder="VD: Cảm biến phòng khách, Đèn ban công..."
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
 
         <Input
-          label="Mã phần cứng"
-          placeholder="esp32-node-58332"
+          label="Mã thiết bị (Serial / UID)"
+          placeholder="VD: esp32-node-58332"
           value={deviceUid}
           onChange={(e) => setDeviceUid(e.target.value)}
-          helper="Khớp với DEVICE_UID nạp trong firmware của mạch."
+          helper="Mã định danh in trên thân thiết bị hoặc trong hướng dẫn sử dụng."
           required
         />
 
@@ -139,9 +139,9 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
           <button
             type="button"
             onClick={fillSample}
-            className="text-sm text-ink-2 underline underline-offset-2 hover:text-ink"
+            className="text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
           >
-            Điền thiết bị mẫu
+            Dùng thử mã mẫu
           </button>
 
           <div className="flex gap-2">

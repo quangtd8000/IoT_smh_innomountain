@@ -118,7 +118,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
           <p className="text-sm text-ink">Chưa có thiết bị nào ở đây.</p>
           {isOwnerOrAdmin && (
             <p className="text-sm text-ink-2 mt-1">
-              Bấm “Thêm thiết bị” để đăng ký một mạch ESP32 mới.
+              Bấm “Thêm thiết bị” để thêm thiết bị thông minh mới vào phòng.
             </p>
           )}
         </div>

@@ -18,11 +18,6 @@ export interface DeviceCardProps {
 export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
   const { isOwnerOrAdmin, refreshHomeDetails, toggleRelayChannel, rooms } = useHome();
   const [showAddRelay, setShowAddRelay] = useState(false);
-  const [showCommandModal, setShowCommandModal] = useState(false);
-  const [commandName, setCommandName] = useState('power');
-  const [commandValue, setCommandValue] = useState('on');
-  const [commandLoading, setCommandLoading] = useState(false);
-  const [commandResult, setCommandResult] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const room = rooms.find((r) => r.id === device.room_id);
@@ -36,27 +31,6 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
       await refreshHomeDetails();
     } catch (err: any) {
       setDeleteError(err.message || 'Không xoá được thiết bị.');
-    }
-  };
-
-  const handleSendCommand = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCommandLoading(true);
-    setCommandResult(null);
-    try {
-      let parsedValue: any = commandValue;
-      try {
-        parsedValue = JSON.parse(commandValue);
-      } catch {
-        // Không phải JSON thì gửi nguyên chuỗi
-      }
-      await devicesApi.sendCommand(device.id, commandName, parsedValue);
-      setCommandResult('Đã gửi lệnh.');
-      setTimeout(() => setShowCommandModal(false), 1200);
-    } catch (err: any) {
-      setCommandResult(`Lỗi: ${err.message}`);
-    } finally {
-      setCommandLoading(false);
     }
   };
 
@@ -88,7 +62,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
         <div className="px-4 py-3 border-b border-line flex-1">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-ink-2">
-              Kênh relay ({device.relay_channels?.length || 0})
+              Công tắc ({device.relay_channels?.length || 0})
             </span>
             {isOwnerOrAdmin && (
               <button
@@ -96,7 +70,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
                 className="text-xs text-ink-2 hover:text-ink flex items-center gap-1 transition-colors"
               >
                 <Plus size={13} aria-hidden="true" />
-                Thêm kênh
+                Thêm công tắc
               </button>
             )}
           </div>
@@ -119,7 +93,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-ink-2">Chưa có kênh nào.</p>
+            <p className="text-sm text-ink-2">Chưa có công tắc nào.</p>
           )}
         </div>
 
@@ -129,17 +103,21 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
           </div>
         )}
 
-        <div className="px-4 py-3 flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setShowCommandModal(true)} className="flex-1">
-            Gửi lệnh
-          </Button>
-
-          {isOwnerOrAdmin && (
-            <Button variant="ghost" size="sm" onClick={handleDelete} aria-label="Xoá thiết bị" title="Xoá thiết bị">
-              <Trash2 size={15} />
+        {isOwnerOrAdmin && (
+          <div className="px-4 py-2.5 flex items-center justify-end border-t border-line/40">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              className="text-xs text-ink-2 hover:text-air-bad flex items-center gap-1.5"
+              aria-label="Xoá thiết bị"
+              title="Xoá thiết bị"
+            >
+              <Trash2 size={13} />
+              <span>Xoá thiết bị</span>
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {showAddRelay && (
@@ -149,55 +127,6 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
           deviceId={device.id}
           existingChannels={device.relay_channels?.map((c) => c.channel) || []}
         />
-      )}
-
-      {showCommandModal && (
-        <Modal
-          isOpen={showCommandModal}
-          onClose={() => setShowCommandModal(false)}
-          title={`Gửi lệnh tới ${device.name}`}
-          description={`home/${device.home_id}/device/${device.id}/command`}
-        >
-          <form onSubmit={handleSendCommand} className="space-y-4">
-            {commandResult && (
-              <Notice tone={commandResult.startsWith('Lỗi') ? 'error' : 'success'}>
-                {commandResult}
-              </Notice>
-            )}
-
-            <Input
-              label="Lệnh"
-              value={commandName}
-              onChange={(e) => setCommandName(e.target.value)}
-              placeholder="power"
-              helper="Ví dụ: power, toggle, restart, ir, clean"
-              required
-            />
-
-            <Input
-              label="Giá trị"
-              value={commandValue}
-              onChange={(e) => setCommandValue(e.target.value)}
-              placeholder="on"
-              helper="Chuỗi hoặc JSON. Ví dụ: on, off, 1, {&quot;ch&quot;:2}"
-              required
-            />
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-line">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowCommandModal(false)}
-                disabled={commandLoading}
-              >
-                Huỷ
-              </Button>
-              <Button type="submit" variant="primary" loading={commandLoading}>
-                Gửi lệnh
-              </Button>
-            </div>
-          </form>
-        </Modal>
       )}
     </>
   );

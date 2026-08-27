@@ -13,7 +13,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Nhà", title: "Nhà", icon: Home },
   { id: "devices", label: "Thiết bị", title: "Thiết bị", icon: LayoutGrid },
-  { id: "ir", label: "Điều hoà", title: "Điều hoà", icon: AirVent },
+  { id: "ir", label: "Điều khiển", title: "Điều khiển", icon: AirVent },
   { id: "analytics", label: "Số liệu", title: "Số liệu", icon: LineChart },
   { id: "settings", label: "Cài đặt", title: "Cài đặt", icon: Settings },
 ];

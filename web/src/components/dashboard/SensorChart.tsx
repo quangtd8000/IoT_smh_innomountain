@@ -45,10 +45,13 @@ const GROUPS: { id: string; label: string; metrics: MetricDef[] }[] = [
 /** Dashboard cần xu hướng gần đây, không cần lịch sử — dùng khoảng ngắn nhất. */
 const RANGE = RANGES[0];
 
-export const SensorChart: React.FC = () => {
-  const { devices } = useHome();
+export interface SensorChartProps {
+  selectedRoomId?: number | 'all';
+}
+
+export const SensorChart: React.FC<SensorChartProps> = ({ selectedRoomId = 'all' }) => {
+  const { devices, rooms } = useHome();
   const { resolved } = useTheme();
-  const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [groupId, setGroupId] = useState<string>('temp_hum');
   const [loading, setLoading] = useState<boolean>(false);
@@ -56,11 +59,16 @@ export const SensorChart: React.FC = () => {
   const palette = CHART[resolved];
   const group = GROUPS.find((g) => g.id === groupId) ?? GROUPS[0];
 
-  useEffect(() => {
-    if (devices.length > 0 && !selectedDeviceId) {
-      setSelectedDeviceId(devices[0].id);
-    }
-  }, [devices, selectedDeviceId]);
+  // Tìm thiết bị cảm biến phù hợp với phòng đang chọn
+  const roomSensorDevice =
+    selectedRoomId === 'all'
+      ? devices.find((d) => d.device_type === 'sensor' || d.device_uid.includes('node') || d.name.toLowerCase().includes('cảm biến')) || devices[0]
+      : devices.find((d) => d.room_id === selectedRoomId && (d.device_type === 'sensor' || d.device_uid.includes('node'))) ||
+        devices.find((d) => d.device_type === 'sensor' || d.device_uid.includes('node')) ||
+        devices[0];
+
+  const selectedDeviceId = roomSensorDevice?.id;
+  const currentRoomName = rooms.find((r) => r.id === selectedRoomId)?.name;
 
   const loadTelemetry = async (deviceId: number) => {
     setLoading(true);
@@ -90,28 +98,15 @@ export const SensorChart: React.FC = () => {
     <div className="plate p-5 sm:p-6">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-sm font-medium text-ink-2">
-            {buckets.length > 1 ? `${formatSpan(spanMinutes(buckets))} vừa qua` : RANGE.label}
+          <h2 className="text-sm font-medium text-ink">
+            Biểu đồ môi trường {currentRoomName ? `· ${currentRoomName}` : '· Toàn nhà'}
           </h2>
-          <p className="text-xs text-ink-2 mt-0.5">Trung bình mỗi phút</p>
+          <p className="text-xs text-ink-2 mt-0.5">
+            {buckets.length > 1 ? `${formatSpan(spanMinutes(buckets))} vừa qua` : RANGE.label} (Trung bình mỗi phút)
+          </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {devices.length > 1 && (
-            <select
-              value={selectedDeviceId || ''}
-              onChange={(e) => setSelectedDeviceId(Number(e.target.value))}
-              aria-label="Chọn thiết bị"
-              className="min-h-9 bg-surface border border-line text-ink text-sm rounded-md px-2"
-            >
-              {devices.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          )}
-
           <div className="flex rounded-md border border-line overflow-hidden">
             {GROUPS.map((g) => (
               <button

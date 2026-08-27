@@ -102,8 +102,8 @@ def update_device(
         device.name = device_in.name
     if device_in.device_type is not None:
         device.device_type = device_in.device_type
-    if device_in.room_id is not None:
-        if device_in.room_id > 0:
+    if "room_id" in device_in.model_fields_set:
+        if device_in.room_id and device_in.room_id > 0:
             room = db.query(Room).filter(Room.id == device_in.room_id, Room.home_id == device.home_id).first()
             if not room:
                 raise HTTPException(

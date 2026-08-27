@@ -26,7 +26,11 @@ const UNASSIGNED = 'unassigned';
  * riêng phủ rất nhạt lên mặt bảng, mà vẫn không ai phải đoán phím nào
  * đang bật.
  */
-export const SwitchPlate: React.FC = () => {
+export interface SwitchPlateProps {
+  selectedRoomId?: number | 'all';
+}
+
+export const SwitchPlate: React.FC<SwitchPlateProps> = ({ selectedRoomId = 'all' }) => {
   const { devices, rooms, toggleRelayChannel } = useHome();
   const [pending, setPending] = useState<Set<number>>(new Set());
 
@@ -57,7 +61,7 @@ export const SwitchPlate: React.FC = () => {
 
     // Sắp xếp cố định thứ tự các phòng theo danh sách rooms, phòng chưa gán nằm cuối
     const roomIndexMap = new Map(rooms.map((r, idx) => [r.id, idx]));
-    return Array.from(byRoom.values()).sort((a, b) => {
+    const sorted = Array.from(byRoom.values()).sort((a, b) => {
       if (a.roomId === UNASSIGNED) return 1;
       if (b.roomId === UNASSIGNED) return -1;
       const idxA = roomIndexMap.get(Number(a.roomId)) ?? 999;
@@ -65,7 +69,10 @@ export const SwitchPlate: React.FC = () => {
       if (idxA !== idxB) return idxA - idxB;
       return String(a.roomName).localeCompare(String(b.roomName));
     });
-  }, [devices, rooms]);
+
+    if (selectedRoomId === 'all') return sorted;
+    return sorted.filter((p) => p.roomId === selectedRoomId);
+  }, [devices, rooms, selectedRoomId]);
 
   const handlePress = async ({ channel, device }: Key) => {
     if (pending.has(channel.id)) return;

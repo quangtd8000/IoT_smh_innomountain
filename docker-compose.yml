@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    volumes:
+      - ./backend/app:/app/app
     ports:
       - "8000:8000"
     networks:

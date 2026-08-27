@@ -71,8 +71,6 @@ def on_message(client, userdata, msg):
             elif m_sh_tel:
                 device_uid = m_sh_tel.group(1)
                 device = db.query(Device).filter(Device.device_uid == device_uid).first()
-                if not device and device_uid.startswith("node"):
-                    device = db.query(Device).first()
                 if device:
                     process_telemetry(db, device, payload)
                 else:
@@ -80,8 +78,6 @@ def on_message(client, userdata, msg):
             elif m_sh_state:
                 device_uid = m_sh_state.group(1)
                 device = db.query(Device).filter(Device.device_uid == device_uid).first()
-                if not device and device_uid.startswith("node"):
-                    device = db.query(Device).first()
                 if device:
                     process_state(db, device, payload)
                 else:

@@ -60,6 +60,10 @@ export const devicesApi = {
     return res.data.data || (res.data as any);
   },
 
+  deleteRelayChannel: async (deviceId: number, channelId: number): Promise<void> => {
+    await apiClient.delete(`/devices/${deviceId}/relay-channels/${channelId}`);
+  },
+
   // IR Devices & Commands
   getIRDevices: async (deviceId: number): Promise<IRDevice[]> => {
     const res = await apiClient.get<ApiResponse<IRDevice[]>>(`/devices/${deviceId}/ir-devices`);

@@ -68,13 +68,12 @@ def create_device(
     db.commit()
     db.refresh(device)
 
-    # Auto-provision relay channels for controller/relay
-    if device.device_type in ["controller", "relay"]:
-        ch1 = RelayChannel(device_id=device.id, channel=1, name="Đèn", state=False)
-        db.add(ch1)
-        if device.device_type == "relay":
-            ch2 = RelayChannel(device_id=device.id, channel=2, name="Quạt", state=False)
-            db.add(ch2)
+    # Auto-provision 3 relay channels ONLY for relay node
+    if device.device_type == "relay":
+        ch1 = RelayChannel(device_id=device.id, channel=1, name="Công tắc 1", state=False)
+        ch2 = RelayChannel(device_id=device.id, channel=2, name="Công tắc 2", state=False)
+        ch3 = RelayChannel(device_id=device.id, channel=3, name="Công tắc 3", state=False)
+        db.add_all([ch1, ch2, ch3])
         db.commit()
 
     return ApiResponse(data=DeviceResponse.model_validate(device))
@@ -186,11 +185,24 @@ def create_relay_channel(
 ):
     device, _ = check_device_permission(db, current_user.id, device_id, ["owner", "admin"])
 
+    count = db.query(RelayChannel).filter(RelayChannel.device_id == device_id).count()
+    if count >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "MAX_CHANNELS_REACHED", "message": "Mỗi thiết bị chỉ có tối đa 3 công tắc"}
+        )
+
+    if ch_in.channel < 1 or ch_in.channel > 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_CHANNEL", "message": "Số thứ tự công tắc phải từ 1 đến 3"}
+        )
+
     existing = db.query(RelayChannel).filter(RelayChannel.device_id == device_id, RelayChannel.channel == ch_in.channel).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "CHANNEL_EXISTS", "message": f"Channel {ch_in.channel} already configured for this device"}
+            detail={"code": "CHANNEL_EXISTS", "message": f"Công tắc {ch_in.channel} đã tồn tại trên thiết bị này"}
         )
 
     ch = RelayChannel(
@@ -203,6 +215,25 @@ def create_relay_channel(
     db.commit()
     db.refresh(ch)
     return ApiResponse(data=RelayChannelResponse.model_validate(ch))
+
+
+@router.delete("/devices/{device_id}/relay-channels/{channel_id}", response_model=ApiResponse[dict])
+def delete_relay_channel(
+    device_id: int,
+    channel_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    device, _ = check_device_permission(db, current_user.id, device_id, ["owner", "admin"])
+    ch = db.query(RelayChannel).filter(RelayChannel.id == channel_id, RelayChannel.device_id == device_id).first()
+    if not ch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHANNEL_NOT_FOUND", "message": f"Công tắc {channel_id} không tồn tại"}
+        )
+    db.delete(ch)
+    db.commit()
+    return ApiResponse(data={"deleted": True, "channel_id": channel_id, "device_id": device_id})
 
 
 @router.put("/devices/{device_id}/relay-channels/{channel_id}", response_model=ApiResponse[RelayChannelResponse])

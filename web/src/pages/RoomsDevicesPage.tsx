@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useHome } from '../context/HomeContext';
 import { DeviceCard } from '../components/devices/DeviceCard';
+import { EditRoomModal } from '../components/rooms/EditRoomModal';
 import { Button } from '../components/ui/Button';
 import { Notice } from '../components/ui/Notice';
 import { roomsApi } from '../api/rooms';
 import { roomTone } from '../lib/roomTone';
+import { Room } from '../types';
 import { cn } from '../lib/utils';
 
 export interface RoomsDevicesPageProps {
@@ -19,6 +21,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
 }) => {
   const { devices, rooms, isOwnerOrAdmin, refreshHomeDetails } = useHome();
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<number | 'all'>('all');
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const filteredDevices = devices.filter((d) =>
@@ -30,7 +33,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
   const handleDeleteRoom = async (roomId: number, roomName: string) => {
     if (
       !window.confirm(
-        `Xoá phòng “${roomName}”? Thiết bị trong phòng sẽ thành chưa gán phòng.`
+        `Xoá phòng “${roomName}”? Thiết bị trong phòng sẽ trở về trạng thái chưa gán phòng.`
       )
     ) {
       return;
@@ -75,7 +78,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
 
       {error && <Notice tone="error">{error}</Notice>}
 
-      <div className="flex items-center gap-1 overflow-x-auto pb-2 border-b border-line">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-line">
         <button onClick={() => setSelectedRoomFilter('all')} className={tabClass(selectedRoomFilter === 'all')}>
           <span>Tất cả</span>
           <span className="text-xs text-ink-2 tnum">{devices.length}</span>
@@ -87,7 +90,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
           const tone = roomTone(r.name);
           const Icon = tone.icon;
           return (
-            <div key={r.id} className="flex items-center flex-shrink-0">
+            <div key={r.id} className="flex items-center flex-shrink-0 bg-surface/50 rounded-md border border-line/60">
               <button
                 onClick={() => setSelectedRoomFilter(r.id)}
                 className={tabClass(isSelected)}
@@ -99,14 +102,26 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
               </button>
 
               {isOwnerOrAdmin && (
-                <button
-                  onClick={() => handleDeleteRoom(r.id, r.name)}
-                  aria-label={`Xoá phòng ${r.name}`}
-                  title={`Xoá phòng ${r.name}`}
-                  className="p-2 text-ink-2 hover:text-air-bad transition-colors"
-                >
-                  <Trash2 size={13} />
-                </button>
+                <div className="flex items-center pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingRoom(r)}
+                    aria-label={`Đổi tên phòng ${r.name}`}
+                    title={`Đổi tên phòng ${r.name}`}
+                    className="p-1.5 text-ink-2/60 hover:text-ink transition-colors"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteRoom(r.id, r.name)}
+                    aria-label={`Xoá phòng ${r.name}`}
+                    title={`Xoá phòng ${r.name}`}
+                    className="p-1.5 text-ink-2/60 hover:text-air-bad transition-colors"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               )}
             </div>
           );
@@ -115,10 +130,10 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
 
       {filteredDevices.length === 0 ? (
         <div className="plate p-6">
-          <p className="text-sm text-ink">Chưa có thiết bị nào ở đây.</p>
+          <p className="text-sm text-ink">Chưa có thiết bị nào ở phòng này.</p>
           {isOwnerOrAdmin && (
             <p className="text-sm text-ink-2 mt-1">
-              Bấm “Thêm thiết bị” để thêm thiết bị thông minh mới vào phòng.
+              Bấm “Thêm thiết bị” để thêm thiết bị mới hoặc chuyển thiết bị vào phòng này.
             </p>
           )}
         </div>
@@ -128,6 +143,14 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
             <DeviceCard key={dev.id} device={dev} />
           ))}
         </div>
+      )}
+
+      {editingRoom && (
+        <EditRoomModal
+          isOpen={editingRoom !== null}
+          onClose={() => setEditingRoom(null)}
+          room={editingRoom}
+        />
       )}
     </div>
   );

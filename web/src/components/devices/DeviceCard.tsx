@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Pencil, Sliders } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sliders, Settings2, MapPin } from 'lucide-react';
 import { Device, RelayChannel } from '../../types';
 import { useHome } from '../../context/HomeContext';
 import { devicesApi } from '../../api/devices';
@@ -8,6 +8,7 @@ import { Switch } from '../ui/Switch';
 import { Notice } from '../ui/Notice';
 import { AddRelayModal } from './AddRelayModal';
 import { EditRelayModal } from './EditRelayModal';
+import { EditDeviceModal } from './EditDeviceModal';
 import { formatRelativeTime, cn } from '../../lib/utils';
 
 export interface DeviceCardProps {
@@ -17,6 +18,7 @@ export interface DeviceCardProps {
 export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
   const { isOwnerOrAdmin, refreshHomeDetails, toggleRelayChannel, rooms } = useHome();
   const [showAddRelay, setShowAddRelay] = useState(false);
+  const [showEditDevice, setShowEditDevice] = useState(false);
   const [editingChannel, setEditingChannel] = useState<RelayChannel | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deletingChannelId, setDeletingChannelId] = useState<number | null>(null);
@@ -56,10 +58,24 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
       <div className="plate flex flex-col p-0">
         <div className="px-4 py-3 border-b border-line">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-sm font-medium text-ink truncate">{device.name}</h3>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-medium text-ink truncate">{device.name}</h3>
+                {isOwnerOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEditDevice(true)}
+                    className="text-ink-2/60 hover:text-ink p-1 rounded transition-colors"
+                    title="Đổi tên hoặc chuyển phòng"
+                    aria-label="Cài đặt thiết bị"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-ink-2 truncate">{device.device_uid}</p>
             </div>
+
             {/* Trạng thái trực tuyến / offline */}
             <span className="flex items-center gap-1.5 text-xs flex-shrink-0">
               <span
@@ -71,9 +87,27 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
               </span>
             </span>
           </div>
-          <p className="mt-1 text-xs text-ink-2">
-            {room?.name || 'Chưa gán phòng'} · {formatRelativeTime(device.last_seen)}
-          </p>
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => isOwnerOrAdmin && setShowEditDevice(true)}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
+                room
+                  ? 'bg-ink/5 text-ink hover:bg-ink/10'
+                  : 'bg-air-ok/10 text-ink-2 hover:text-ink'
+              )}
+              title={isOwnerOrAdmin ? 'Bấm để đổi phòng' : undefined}
+            >
+              <MapPin size={11} className="text-ink-2" />
+              <span>{room?.name || 'Chưa gán phòng'}</span>
+              {isOwnerOrAdmin && <span className="text-[10px] text-ink-2">· Đổi</span>}
+            </button>
+            <span className="text-xs text-ink-2">
+              {formatRelativeTime(device.last_seen)}
+            </span>
+          </div>
         </div>
 
         <div className="px-4 py-3 border-b border-line flex-1">
@@ -179,7 +213,15 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
         )}
 
         {isOwnerOrAdmin && (
-          <div className="px-4 py-2.5 flex items-center justify-end border-t border-line/40">
+          <div className="px-4 py-2.5 flex items-center justify-between border-t border-line/40">
+            <button
+              type="button"
+              onClick={() => setShowEditDevice(true)}
+              className="text-xs text-ink-2 hover:text-ink flex items-center gap-1 transition-colors"
+            >
+              <Settings2 size={13} />
+              <span>Chuyển phòng / Đổi tên</span>
+            </button>
             <Button
               variant="ghost"
               size="sm"
@@ -210,6 +252,14 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
           onClose={() => setEditingChannel(null)}
           deviceId={device.id}
           channel={editingChannel}
+        />
+      )}
+
+      {showEditDevice && (
+        <EditDeviceModal
+          isOpen={showEditDevice}
+          onClose={() => setShowEditDevice(false)}
+          device={device}
         />
       )}
     </>

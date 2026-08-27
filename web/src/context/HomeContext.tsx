@@ -89,9 +89,12 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         devicesApi.getDevicesByHome(activeHome.id).catch(() => []),
       ]);
 
+      // Sắp xếp các danh sách cố định để không bị nhảy vị trí khi cập nhật
+      const sortedRooms = (roomsData || []).sort((a, b) => a.id - b.id);
+
       // Enhance devices with their relay channels and IR devices in parallel
       const detailedDevices = await Promise.all(
-        devicesData.map(async (dev) => {
+        (devicesData || []).map(async (dev) => {
           try {
             const [relays, irs] = await Promise.all([
               devicesApi.getRelayChannels(dev.id).catch(() => []),
@@ -99,8 +102,8 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ]);
             return {
               ...dev,
-              relay_channels: relays,
-              ir_devices: irs,
+              relay_channels: (relays || []).sort((a, b) => (a.channel || 0) - (b.channel || 0) || a.id - b.id),
+              ir_devices: irs || [],
             };
           } catch {
             return dev;
@@ -108,8 +111,10 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
       );
 
+      detailedDevices.sort((a, b) => a.id - b.id);
+
       setMembers(membersData);
-      setRooms(roomsData);
+      setRooms(sortedRooms);
       setDevices(detailedDevices);
     } catch (error) {
       console.error('Error loading home details:', error);

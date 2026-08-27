@@ -50,10 +50,20 @@ export const SwitchPlate: React.FC = () => {
       }
     }
 
+    // Sắp xếp cố định các công tắc trong từng phòng theo số thứ tự kênh
+    for (const plate of byRoom.values()) {
+      plate.keys.sort((a, b) => (a.channel.channel || 0) - (b.channel.channel || 0) || a.channel.id - b.channel.id);
+    }
+
+    // Sắp xếp cố định thứ tự các phòng theo danh sách rooms, phòng chưa gán nằm cuối
+    const roomIndexMap = new Map(rooms.map((r, idx) => [r.id, idx]));
     return Array.from(byRoom.values()).sort((a, b) => {
       if (a.roomId === UNASSIGNED) return 1;
       if (b.roomId === UNASSIGNED) return -1;
-      return b.keys.length - a.keys.length;
+      const idxA = roomIndexMap.get(Number(a.roomId)) ?? 999;
+      const idxB = roomIndexMap.get(Number(b.roomId)) ?? 999;
+      if (idxA !== idxB) return idxA - idxB;
+      return String(a.roomName).localeCompare(String(b.roomName));
     });
   }, [devices, rooms]);
 

@@ -30,7 +30,7 @@ def list_devices(
     db: Session = Depends(get_db)
 ):
     check_home_permission(db, current_user.id, home_id, ["owner", "admin", "member"])
-    devices = db.query(Device).filter(Device.home_id == home_id).all()
+    devices = db.query(Device).filter(Device.home_id == home_id).order_by(Device.id).all()
     return ApiResponse(data=[DeviceResponse.model_validate(d) for d in devices])
 
 

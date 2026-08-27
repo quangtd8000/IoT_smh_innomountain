@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Pencil, Bluetooth } from 'lucide-react';
 import { useHome } from '../context/HomeContext';
 import { DeviceCard } from '../components/devices/DeviceCard';
 import { EditRoomModal } from '../components/rooms/EditRoomModal';
+import { BlePairingModal } from '../components/devices/BlePairingModal';
 import { Button } from '../components/ui/Button';
 import { Notice } from '../components/ui/Notice';
 import { roomsApi } from '../api/rooms';
@@ -22,6 +22,7 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
   const { devices, rooms, isOwnerOrAdmin, refreshHomeDetails } = useHome();
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<number | 'all'>('all');
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [showBlePairing, setShowBlePairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedRoom = rooms.find((r) => r.id === selectedRoomFilter);
@@ -90,6 +91,15 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
               </>
             )}
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBlePairing(true)}
+              className="text-blue-500 border-blue-500/30 hover:bg-blue-500/10 flex items-center gap-1.5 font-medium"
+            >
+              <Bluetooth size={14} className="text-blue-500" aria-hidden="true" />
+              <span>Ghép nối Bluetooth</span>
+            </Button>
             <Button variant="secondary" size="sm" onClick={onOpenAddRoom}>
               <Plus size={14} aria-hidden="true" />
               Thêm phòng
@@ -155,6 +165,15 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
           room={editingRoom}
         />
       )}
+
+      <BlePairingModal
+        isOpen={showBlePairing}
+        onClose={() => setShowBlePairing(false)}
+        onSuccess={() => {
+          setShowBlePairing(false);
+          refreshHomeDetails();
+        }}
+      />
     </div>
   );
 };

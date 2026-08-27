@@ -6,6 +6,9 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Notice } from '../ui/Notice';
 
+import { Bluetooth, Sparkles } from 'lucide-react';
+import { BlePairingModal } from './BlePairingModal';
+
 export interface AddDeviceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,13 +31,10 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
   const [roomId, setRoomId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showBleModal, setShowBleModal] = useState(false);
 
   /**
    * Điền sẵn một thiết bị mẫu để thử nhanh.
-   *
-   * Trước đây chỗ này là tab "Quét mã QR" có hiệu ứng quét, nhưng nó
-   * không đọc camera và không giải mã gì cả — chỉ chờ 1,2 giây rồi điền
-   * cứng đúng một mã. Giữ lại tiện ích, bỏ cái nhãn không đúng sự thật.
    */
   const fillSample = () => {
     setDeviceUid('esp32-node-58332');
@@ -72,22 +72,54 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Thêm thiết bị mới"
-      description="Thêm thiết bị thông minh hoặc cụm cảm biến vào ngôi nhà."
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <Notice tone="error">{error}</Notice>}
+    <>
+      <Modal
+        isOpen={isOpen && !showBleModal}
+        onClose={onClose}
+        title="Thêm thiết bị mới"
+        description="Thêm thiết bị thông minh hoặc cụm cảm biến vào ngôi nhà."
+      >
+        <div className="space-y-4">
+          {/* Quick Bluetooth Pairing Button */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border border-blue-500/20 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+                <Bluetooth className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-ink flex items-center gap-1.5">
+                  Ghép nối Bluetooth <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 font-semibold">Tự động</span>
+                </h4>
+                <p className="text-xs text-ink-2">Cài đặt Wi-Fi tự động cho ESP32 không cần gõ UID</p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setShowBleModal(true)}
+              className="shrink-0 font-semibold"
+            >
+              Ghép nối ➔
+            </Button>
+          </div>
 
-        <Input
-          label="Tên thiết bị"
-          placeholder="VD: Cảm biến phòng khách, Đèn ban công..."
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-line"></div>
+            <span className="flex-shrink mx-3 text-xs uppercase font-medium text-ink-2">Hoặc thêm thủ công</span>
+            <div className="flex-grow border-t border-line"></div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && <Notice tone="error">{error}</Notice>}
+
+            <Input
+              label="Tên thiết bị"
+              placeholder="VD: Cảm biến phòng khách, Đèn ban công..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
 
         <Input
           label="Mã thiết bị (Serial / UID)"
@@ -154,6 +186,17 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
           </div>
         </div>
       </form>
+      </div>
     </Modal>
+
+    <BlePairingModal
+      isOpen={showBleModal}
+      onClose={() => setShowBleModal(false)}
+      onSuccess={() => {
+        setShowBleModal(false);
+        onClose();
+      }}
+    />
+  </>
   );
 };

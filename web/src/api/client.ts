@@ -2,9 +2,13 @@ import axios, { AxiosError } from 'axios';
 
 // Get base URL from localStorage or environment or default
 export const getBaseUrl = (): string => {
-  // Duong dan tuong doi: nginx proxy /api sang backend, nen chay duoc tu
-  // bat ky dia chi nao (IP LAN, IP public, tunnel) ma khong phai build lai.
-  return localStorage.getItem('smarthome_api_url') || import.meta.env.VITE_API_URL || '/api';
+  const saved = localStorage.getItem('smarthome_api_url');
+  // Nếu url cũ lưu IP cứng 192.168.1.35:8000 làm lỗi khi ra ngoài mạng, tự dọn dẹp về /api
+  if (saved && (saved.includes('192.168.1.35:8000') || saved.includes(':8000'))) {
+    localStorage.removeItem('smarthome_api_url');
+    return '/api';
+  }
+  return saved || import.meta.env.VITE_API_URL || '/api';
 };
 
 export const setBaseUrl = (url: string) => {

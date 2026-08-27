@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Plus, Trash2, Pencil, Bluetooth } from 'lucide-react';
 import { useHome } from '../context/HomeContext';
 import { DeviceCard } from '../components/devices/DeviceCard';

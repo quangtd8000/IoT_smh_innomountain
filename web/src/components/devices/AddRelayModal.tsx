@@ -70,7 +70,7 @@ export const AddRelayModal: React.FC<AddRelayModalProps> = ({
     >
       {isFull ? (
         <div className="space-y-4">
-          <Notice tone="neutral">
+          <Notice tone="info">
             Thiết bị này đã đạt giới hạn tối đa 3 công tắc. Để thêm mới, vui lòng xoá bớt một công tắc không dùng.
           </Notice>
           <div className="flex justify-end pt-3 border-t border-line">

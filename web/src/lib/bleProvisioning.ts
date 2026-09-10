@@ -15,7 +15,6 @@ export interface BleStatusPayload {
   status: 'saving' | 'connecting' | 'connected' | 'error_invalid_ssid' | 'error_json' | 'error' | string;
   ip?: string;
   uid?: string;
-  node_id?: number;
 }
 
 export const isWebBluetoothSupported = (): boolean => {
@@ -123,9 +122,12 @@ export class BleProvisioner {
         // Timeout 25s nếu ESP32 không phản hồi
         setTimeout(() => {
           if (!resolved) {
+            // Tên BLE dạng SmartHome-Air-00001 / SmartHome-Relay-00002 — UID thật
+            // là 5 ký tự cuối (esp32-node-00001...), không phải replace prefix.
+            const m = /([0-9A-Za-z]{5})$/.exec(this.device.name || '');
             resolve({
               status: 'saved',
-              uid: this.device.name?.replace('SmartHome-', 'esp32-node-').toLowerCase()
+              uid: m ? `esp32-node-${m[1].toLowerCase()}` : undefined,
             });
           }
         }, 25000);

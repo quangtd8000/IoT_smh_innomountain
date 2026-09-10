@@ -105,7 +105,7 @@ def process_telemetry(db, device: Device, payload: dict):
     extra = payload.get("extra_metrics") or {}
     if not isinstance(extra, dict):
         extra = {}
-    for k in ["voc_index", "nox_index", "sraw_voc", "sraw_nox", "pm1_0", "pm10", "uptime", "node_id"]:
+    for k in ["voc_index", "nox_index", "sraw_voc", "sraw_nox", "pm1_0", "pm10", "uptime"]:
         if k in payload and k not in extra:
             extra[k] = payload[k]
 

@@ -21,6 +21,10 @@ from app.mqtt.publisher import publish_device_command
 
 router = APIRouter(tags=["Devices"])
 
+# ESP32 node relay chỉ có 3 kênh phần cứng — một hằng số duy nhất thay vì
+# số 3 rải rác ở auto-provision, check count và validate channel.
+MAX_RELAY_CHANNELS = 3
+
 
 # 1. Devices in Home
 @router.get("/homes/{home_id}/devices", response_model=ApiResponse[List[DeviceResponse]])
@@ -29,6 +33,9 @@ def list_devices(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Endpoint chỉ ĐỌC. Việc đánh dấu thiết bị hết hạn last_seen thành offline
+    # do job nền `mark_stale_devices_offline` (main.lifespan) đảm nhiệm — trước
+    # đây GET tự ghi DB, cạnh tranh với subscriber.py và vi phạm tính chỉ-đọc.
     check_home_permission(db, current_user.id, home_id, ["owner", "admin", "member"])
     devices = db.query(Device).filter(Device.home_id == home_id).order_by(Device.id).all()
     return ApiResponse(data=[DeviceResponse.model_validate(d) for d in devices])
@@ -68,12 +75,12 @@ def create_device(
     db.commit()
     db.refresh(device)
 
-    # Auto-provision 3 relay channels ONLY for relay node
+    # Auto-provision các kênh relay ONLY cho relay node
     if device.device_type == "relay":
-        ch1 = RelayChannel(device_id=device.id, channel=1, name="Công tắc 1", state=False)
-        ch2 = RelayChannel(device_id=device.id, channel=2, name="Công tắc 2", state=False)
-        ch3 = RelayChannel(device_id=device.id, channel=3, name="Công tắc 3", state=False)
-        db.add_all([ch1, ch2, ch3])
+        db.add_all([
+            RelayChannel(device_id=device.id, channel=ch, name=f"Công tắc {ch}", state=False)
+            for ch in range(1, MAX_RELAY_CHANNELS + 1)
+        ])
         db.commit()
 
     return ApiResponse(data=DeviceResponse.model_validate(device))
@@ -186,16 +193,16 @@ def create_relay_channel(
     device, _ = check_device_permission(db, current_user.id, device_id, ["owner", "admin"])
 
     count = db.query(RelayChannel).filter(RelayChannel.device_id == device_id).count()
-    if count >= 3:
+    if count >= MAX_RELAY_CHANNELS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "MAX_CHANNELS_REACHED", "message": "Mỗi thiết bị chỉ có tối đa 3 công tắc"}
+            detail={"code": "MAX_CHANNELS_REACHED", "message": f"Mỗi thiết bị chỉ có tối đa {MAX_RELAY_CHANNELS} công tắc"}
         )
 
-    if ch_in.channel < 1 or ch_in.channel > 3:
+    if ch_in.channel < 1 or ch_in.channel > MAX_RELAY_CHANNELS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_CHANNEL", "message": "Số thứ tự công tắc phải từ 1 đến 3"}
+            detail={"code": "INVALID_CHANNEL", "message": f"Số thứ tự công tắc phải từ 1 đến {MAX_RELAY_CHANNELS}"}
         )
 
     existing = db.query(RelayChannel).filter(RelayChannel.device_id == device_id, RelayChannel.channel == ch_in.channel).first()
@@ -252,7 +259,10 @@ def update_relay_channel(
             detail={"code": "CHANNEL_NOT_FOUND", "message": f"Relay channel {channel_id} not found"}
         )
 
-    if ch_in.name is not None:
+    # Phân quyền theo spec §14: member được "Điều khiển" (đổi state) nhưng
+    # "Quản lý device có giới hạn" — đổi tên kênh thuộc quản lý → owner/admin.
+    if ch_in.name is not None and ch_in.name != ch.name:
+        check_home_permission(db, current_user.id, device.home_id, ["owner", "admin"])
         ch.name = ch_in.name
     if ch_in.state is not None:
         ch.state = ch_in.state

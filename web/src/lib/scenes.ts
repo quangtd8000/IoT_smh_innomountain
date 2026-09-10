@@ -5,7 +5,7 @@ import {
   PowerOff,
   Sun,
   Coffee,
-  Sparkles,
+  Users,
   Tv,
   Film,
   LucideIcon,
@@ -19,7 +19,7 @@ export const SCENE_ICONS: Record<string, LucideIcon> = {
   PowerOff,
   Sun,
   Coffee,
-  Sparkles,
+  Users,
   Tv,
   Film,
 };
@@ -32,7 +32,7 @@ export const SCENE_ICON_LABELS: Record<string, string> = {
   Coffee: 'Cà phê / Thư giãn',
   Film: 'Xem phim',
   Tv: 'Tivi',
-  Sparkles: 'Tiếp khách / Lễ hội',
+  Users: 'Tiếp khách / Lễ hội',
   PowerOff: 'Tắt nguồn',
 };
 
@@ -84,7 +84,12 @@ export function getHomeScenes(homeId: number | string): CustomScene[] {
     const raw = localStorage.getItem(`smarthome_scenes_${homeId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Chuẩn hoá icon cũ bị cấm theo spec UI (Sparkles → Users)
+        return parsed.map((s: CustomScene) =>
+          s.iconName === 'Sparkles' ? { ...s, iconName: 'Users' } : s
+        );
+      }
     }
   } catch (e) {
     console.error('Error reading scenes from storage:', e);

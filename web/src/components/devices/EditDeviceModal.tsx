@@ -34,6 +34,11 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
   );
 
   useEffect(() => {
+    // Chỉ reset form khi modal vừa được MỞ (hoặc đổi sang thiết bị khác id).
+    // KHÔNG phụ thuộc object `device` trong deps: HomeContext polling 5s luôn
+    // tạo object mới, nếu đưa `device` vào deps thì tên đang gõ sẽ bị đè lại
+    // bởi dữ liệu cũ từ server sau vài giây, khiến không thể đổi tên/đổi phòng.
+    if (!isOpen) return;
     setName(device.name);
     setRoomId(device.room_id ? String(device.room_id) : '');
     const initialNames: Record<number, string> = {};
@@ -43,7 +48,8 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
     setChannelNames(initialNames);
     setDeletedChannelIds([]);
     setError('');
-  }, [device, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [device.id, isOpen]);
 
   const handleChannelNameChange = (chId: number, newName: string) => {
     setChannelNames((prev) => ({ ...prev, [chId]: newName }));
@@ -55,6 +61,7 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // chống submit trùng khi đang lưu
     if (!name.trim()) {
       setError('Vui lòng nhập tên thiết bị');
       return;
@@ -140,7 +147,7 @@ export const EditDeviceModal: React.FC<EditDeviceModalProps> = ({
             <div className="space-y-2">
               {channels.map((ch) => (
                 <div key={ch.id} className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-ink-2 bg-ink/5 px-2 py-2 rounded flex-shrink-0">
+                  <span className="text-xs text-ink-2 bg-ink/5 px-2 py-2 rounded flex-shrink-0">
                     Kênh {ch.channel}
                   </span>
                   <input

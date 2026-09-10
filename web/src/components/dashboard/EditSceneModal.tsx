@@ -25,7 +25,7 @@ export const EditSceneModal: React.FC<EditSceneModalProps> = ({
 }) => {
   const { devices, rooms } = useHome();
   const [name, setName] = useState(scene.name);
-  const [iconName, setIconName] = useState(scene.iconName || 'Sparkles');
+  const [iconName, setIconName] = useState(scene.iconName || 'Home');
   const [channelActions, setChannelActions] = useState<Record<number, 'on' | 'off' | 'ignore'>>({});
   const [error, setError] = useState('');
 
@@ -56,7 +56,7 @@ export const EditSceneModal: React.FC<EditSceneModalProps> = ({
 
   useEffect(() => {
     setName(scene.name);
-    setIconName(scene.iconName || 'Sparkles');
+    setIconName(scene.iconName || 'Home');
     const map: Record<number, 'on' | 'off' | 'ignore'> = {};
     (scene.actions || []).forEach((act) => {
       map[act.channelId] = act.targetState ? 'on' : 'off';

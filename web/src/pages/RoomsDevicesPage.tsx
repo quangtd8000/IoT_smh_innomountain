@@ -96,9 +96,9 @@ export const RoomsDevicesPage: React.FC<RoomsDevicesPageProps> = ({
               variant="outline"
               size="sm"
               onClick={() => setShowBlePairing(true)}
-              className="text-blue-500 border-blue-500/30 hover:bg-blue-500/10 flex items-center gap-1.5 font-medium"
+              className="text-accent border-accent/30 hover:bg-accent/10 flex items-center gap-1.5 font-medium"
             >
-              <Bluetooth size={14} className="text-blue-500" aria-hidden="true" />
+              <Bluetooth size={14} className="text-accent" aria-hidden="true" />
               <span>Ghép nối Bluetooth</span>
             </Button>
             <Button variant="secondary" size="sm" onClick={onOpenAddRoom}>

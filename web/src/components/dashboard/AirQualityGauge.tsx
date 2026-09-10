@@ -36,33 +36,43 @@ export const AirQualityGauge: React.FC<AirQualityGaugeProps> = ({
   const vocIndex = extra.voc_index ?? null;
   const noxIndex = extra.nox_index ?? null;
 
-  // ── Phép tính AQI giữ nguyên như bản cũ (breakpoint PM2.5 chuẩn + phạt CO2) ──
-  let aqiScore = 25;
-  if (pm25 != null) {
-    if (pm25 <= 12) aqiScore = Math.round((pm25 / 12) * 50);
-    else if (pm25 <= 35.4) aqiScore = Math.round(50 + ((pm25 - 12) / (35.4 - 12)) * 50);
-    else if (pm25 <= 55.4) aqiScore = Math.round(100 + ((pm25 - 35.4) / (55.4 - 35.4)) * 50);
-    else aqiScore = Math.min(300, Math.round(150 + ((pm25 - 55.4) / 100) * 150));
+  const hasData = telemetry != null && (temp != null || hum != null || pm25 != null || co2 != null);
+
+  // ── Phép tính AQI (chỉ tính khi có số liệu thực tế) ──
+  let aqiScore: number | null = null;
+  if (hasData) {
+    if (pm25 != null) {
+      if (pm25 <= 12) aqiScore = Math.round((pm25 / 12) * 50);
+      else if (pm25 <= 35.4) aqiScore = Math.round(50 + ((pm25 - 12) / (35.4 - 12)) * 50);
+      else if (pm25 <= 55.4) aqiScore = Math.round(100 + ((pm25 - 35.4) / (55.4 - 35.4)) * 50);
+      else aqiScore = Math.min(300, Math.round(150 + ((pm25 - 55.4) / 100) * 150));
+    } else {
+      aqiScore = 25;
+    }
+    if (co2 != null && co2 > 1000) {
+      const co2Penalty = Math.min(100, Math.round(((co2 - 1000) / 1000) * 80));
+      aqiScore = Math.max(aqiScore, 50 + co2Penalty);
+    }
   }
-  if (co2 != null && co2 > 1000) {
-    const co2Penalty = Math.min(100, Math.round(((co2 - 1000) / 1000) * 80));
-    aqiScore = Math.max(aqiScore, 50 + co2Penalty);
-  }
-  // ──────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────
 
   let statusText: string;
   let statusNote: string;
-  let tone: 'good' | 'ok' | 'bad';
+  let tone: 'good' | 'ok' | 'bad' | 'offline';
 
-  if (aqiScore <= 50) {
+  if (!hasData) {
+    statusText = 'Mất kết nối';
+    statusNote = 'Thiết bị không có tín hiệu hoặc đang tắt nguồn.';
+    tone = 'offline';
+  } else if (aqiScore != null && aqiScore <= 50) {
     statusText = 'Trong lành';
     statusNote = 'Không khí sạch. Ngủ và làm việc đều tốt.';
     tone = 'good';
-  } else if (aqiScore <= 100) {
+  } else if (aqiScore != null && aqiScore <= 100) {
     statusText = 'Tốt';
     statusNote = 'An toàn cho cả nhà.';
     tone = 'good';
-  } else if (aqiScore <= 150) {
+  } else if (aqiScore != null && aqiScore <= 150) {
     statusText = 'Trung bình';
     statusNote = 'CO₂ hoặc bụi đang tăng. Nên bật quạt thông gió.';
     tone = 'ok';
@@ -72,10 +82,10 @@ export const AirQualityGauge: React.FC<AirQualityGaugeProps> = ({
     tone = 'bad';
   }
 
-  const toneText = { good: 'text-air-good', ok: 'text-air-ok', bad: 'text-air-bad' }[tone];
-  const toneBg = { good: 'bg-air-good', ok: 'bg-air-ok', bad: 'bg-air-bad' }[tone];
+  const toneText = { good: 'text-air-good', ok: 'text-air-ok', bad: 'text-air-bad', offline: 'text-ink-2' }[tone];
+  const toneBg = { good: 'bg-air-good', ok: 'bg-air-ok', bad: 'bg-air-bad', offline: 'bg-ink-2/30' }[tone];
 
-  const markerPct = Math.min(100, (aqiScore / SCALE_MAX) * 100);
+  const markerPct = aqiScore != null ? Math.min(100, (aqiScore / SCALE_MAX) * 100) : 0;
 
   // So sánh với null tường minh: giá trị 0 là số đo hợp lệ, không phải "chưa có".
   const readings: { label: string; value: string; note?: string }[] = [
@@ -111,7 +121,7 @@ export const AirQualityGauge: React.FC<AirQualityGaugeProps> = ({
       <div className="flex items-baseline gap-3 flex-wrap">
         <p className={cn('font-display text-2xl font-semibold', toneText)}>{statusText}</p>
         <p className="font-display text-reading text-ink tnum leading-none">
-          {loading ? '—' : aqiScore}
+          {loading || aqiScore == null ? '—' : aqiScore}
         </p>
       </div>
 

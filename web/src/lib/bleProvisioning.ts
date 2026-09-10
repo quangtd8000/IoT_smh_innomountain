@@ -86,6 +86,9 @@ export class BleProvisioner {
           if (data.status === 'connected') {
             resolved = true;
             resolve(data);
+          } else if (data.status.startsWith('error')) {
+            resolved = true;
+            reject(new Error(`Thiết bị báo lỗi: ${data.status}`));
           }
         } catch (e) {
           console.warn("[BLE parse status]", e);
@@ -96,17 +99,25 @@ export class BleProvisioner {
         await this.statusChar.startNotifications();
         this.statusChar.addEventListener('characteristicvaluechanged', handleCharacteristicValueChanged);
 
-        // Gửi cấu hình Wi-Fi xuống ESP32
-        const payloadStr = JSON.stringify({
+        // Gửi cấu hình Wi-Fi xuống ESP32.
+        // Credential MQTT KHÔNG còn fallback hardcode ở đây — bắt buộc caller
+        // phải lấy từ GET /homes/{id}/provision-config (backend cấp khi đã xác thực).
+        const payload: BleWifiConfig = {
           ssid: config.ssid,
           pass: config.pass,
-          broker: config.broker || "192.168.1.35",
-          user: config.user || "inno",
-          pass_mqtt: config.pass_mqtt || "inno123"
-        });
+        };
+        if (config.broker) payload.broker = config.broker;
+        if (config.user) payload.user = config.user;
+        if (config.pass_mqtt) payload.pass_mqtt = config.pass_mqtt;
+        const payloadStr = JSON.stringify(payload);
 
         const encoder = new TextEncoder();
-        await this.configChar.writeValue(encoder.encode(payloadStr));
+        const data = encoder.encode(payloadStr);
+        if (this.configChar.writeValueWithoutResponse) {
+          await this.configChar.writeValueWithoutResponse(data);
+        } else {
+          await this.configChar.writeValue(data);
+        }
         onStatusUpdate({ status: 'saving' });
 
         // Timeout 25s nếu ESP32 không phản hồi

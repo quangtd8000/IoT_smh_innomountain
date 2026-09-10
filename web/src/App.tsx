@@ -13,6 +13,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { CreateHomeModal } from './components/homes/CreateHomeModal';
 import { AddDeviceModal } from './components/devices/AddDeviceModal';
 import { AddRoomModal } from './components/rooms/AddRoomModal';
+import { BlePairingModal } from './components/devices/BlePairingModal';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -23,6 +24,7 @@ const AppContent: React.FC = () => {
   const [showCreateHome, setShowCreateHome] = useState<boolean>(false);
   const [showAddDevice, setShowAddDevice] = useState<boolean>(false);
   const [showAddRoom, setShowAddRoom] = useState<boolean>(false);
+  const [showBlePairing, setShowBlePairing] = useState<boolean>(false);
 
   if (isLoading) {
     return (
@@ -45,6 +47,7 @@ const AppContent: React.FC = () => {
         currentPage={currentPage}
         onSelectPage={setCurrentPage}
         onOpenCreateHome={() => setShowCreateHome(true)}
+        onOpenBlePairing={() => setShowBlePairing(true)}
       >
         {currentPage === 'dashboard' && (
           <DashboardPage
@@ -81,6 +84,13 @@ const AppContent: React.FC = () => {
           <AddRoomModal
             isOpen={showAddRoom}
             onClose={() => setShowAddRoom(false)}
+          />
+        )}
+
+        {showBlePairing && (
+          <BlePairingModal
+            isOpen={showBlePairing}
+            onClose={() => setShowBlePairing(false)}
           />
         )}
       </Layout>

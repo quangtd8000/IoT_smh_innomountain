@@ -20,7 +20,7 @@ export const AddSceneModal: React.FC<AddSceneModalProps> = ({
 }) => {
   const { devices, rooms } = useHome();
   const [name, setName] = useState('');
-  const [iconName, setIconName] = useState('Sparkles');
+  const [iconName, setIconName] = useState('Home');
   // State: Record<channelId, 'on' | 'off' | 'ignore'>
   const [channelActions, setChannelActions] = useState<Record<number, 'on' | 'off' | 'ignore'>>({});
   const [error, setError] = useState('');
@@ -93,7 +93,7 @@ export const AddSceneModal: React.FC<AddSceneModalProps> = ({
 
     onSave(newScene);
     setName('');
-    setIconName('Sparkles');
+    setIconName('Home');
     setChannelActions({});
     onClose();
   };

@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
@@ -6,8 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError, HTTPException
 
 from app.config import settings
+from app.database import SessionLocal
 from app.mqtt.client import get_mqtt_client
 from app.mqtt.subscriber import on_connect, on_message
+from app.services.device_status import mark_stale_devices_offline
 from app.routers import auth, homes, rooms, devices, telemetry
 
 logging.basicConfig(
@@ -15,6 +18,28 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("main")
+
+
+def _mark_stale_once() -> None:
+    db = SessionLocal()
+    try:
+        mark_stale_devices_offline(db)
+    finally:
+        db.close()
+
+
+async def stale_device_worker(interval_seconds: int = 30) -> None:
+    """Job nền đánh dấu thiết bị hết hạn last_seen thành offline.
+
+    Thay cho logic ghi DB từng nằm trong GET list_devices (endpoint phải
+    chỉ-đọc, và ghi trong GET dễ đè trạng thái online vừa được subscriber cập).
+    """
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            await asyncio.to_thread(_mark_stale_once)
+        except Exception as e:
+            logger.error(f"stale_device_worker failed: {e}")
 
 
 @asynccontextmanager
@@ -30,8 +55,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to start MQTT client: {e}")
 
+    status_task = asyncio.create_task(stale_device_worker())
     yield
 
+    status_task.cancel()
     try:
         client.loop_stop()
         client.disconnect()

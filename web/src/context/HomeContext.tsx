@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Home, HomeMember, Room, Device, HomeRole } from '../types';
 import { homesApi } from '../api/homes';
 import { roomsApi } from '../api/rooms';
@@ -23,6 +23,14 @@ interface HomeContextType {
   updateRelayChannelName: (deviceId: number, channelId: number, name: string) => Promise<void>;
 }
 
+// Chỉ cập nhật state khi dữ liệu thực sự thay đổi. HomeContext polling mỗi 5s
+// luôn fetch dữ liệu mới (object/array mới), nếu setState vô điều kiện thì mọi
+// component phụ thuộc object này sẽ render lại liên tục và làm reset form
+// đang nhập trong các modal (sửa tên thiết bị, đổi tên phòng...).
+function setIfChanged<T>(setter: React.Dispatch<React.SetStateAction<T>>, next: T) {
+  setter((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+}
+
 const HomeContext = createContext<HomeContextType | undefined>(undefined);
 
 export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -34,6 +42,8 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  // Bộ đếm thứ tự lần refresh — response về sau của lần cũ phải bị bỏ qua
+  const refreshSeqRef = useRef(0);
 
   // Determine current user's role in active home
   const userRole: HomeRole = React.useMemo(() => {
@@ -84,6 +94,10 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     if (!silent) setIsRefreshing(true);
+    // Sequence guard: nếu trong lúc fetch có một lần refresh mới bắt đầu
+    // (polling 5s / optimistic refresh), response cũ về sau phải bị bỏ qua,
+    // nếu không dữ liệu cũ sẽ đè optimistic update vừa ghi (tên thiết bị bị nhảy).
+    const seq = ++refreshSeqRef.current;
     try {
       const [membersData, roomsData, devicesData] = await Promise.all([
         homesApi.getMembers(activeHome.id).catch(() => []),
@@ -115,9 +129,12 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       detailedDevices.sort((a, b) => a.id - b.id);
 
-      setMembers(membersData);
-      setRooms(sortedRooms);
-      setDevices(detailedDevices);
+      // Bỏ qua response cũ: đã có lần refresh mới hơn bắt đầu sau lần này
+      if (seq !== refreshSeqRef.current) return;
+
+      setIfChanged(setMembers, membersData);
+      setIfChanged(setRooms, sortedRooms);
+      setIfChanged(setDevices, detailedDevices);
     } catch (error) {
       console.error('Error loading home details:', error);
     } finally {

@@ -24,12 +24,19 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Chỉ reset form khi modal vừa được MỞ (hoặc đổi sang phòng khác id).
+    // KHÔNG phụ thuộc object `room` trong deps: HomeContext polling 5s luôn
+    // tạo object mới, nếu đưa `room` vào deps thì form sẽ bị xoá trắng liên tục
+    // khiến không thể đổi tên phòng.
+    if (!isOpen) return;
     setName(room.name);
     setError('');
-  }, [room]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.id, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // chống submit trùng khi đang lưu
     if (!name.trim()) {
       setError('Vui lòng nhập tên phòng');
       return;

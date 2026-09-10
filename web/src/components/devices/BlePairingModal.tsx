@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bluetooth, Wifi, CheckCircle2, AlertCircle, Loader2, Sparkles, Server } from 'lucide-react';
+import { Bluetooth, Wifi, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -7,6 +7,7 @@ import { Notice } from '../ui/Notice';
 import { BleProvisioner, isWebBluetoothSupported, BleStatusPayload } from '../../lib/bleProvisioning';
 import { useHome } from '../../context/HomeContext';
 import { devicesApi } from '../../api/devices';
+import { homesApi } from '../../api/homes';
 
 export interface BlePairingModalProps {
   isOpen: boolean;
@@ -73,13 +74,31 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
     setStatusMsg('Đang kết nối Bluetooth với thiết bị...');
 
     try {
+      // Credential MQTT do backend cấp cho owner/admin (không hardcode ở frontend).
+      let mqttUser = '';
+      let mqttPass = '';
+      if (activeHome) {
+        try {
+          const cfg = await homesApi.getProvisionConfig(activeHome.id);
+          mqttUser = cfg.user;
+          mqttPass = cfg.pass_mqtt;
+        } catch (cfgErr: any) {
+          setError(
+            cfgErr?.message ||
+              'Không lấy được cấu hình provisioning từ máy chủ. Vui lòng thử lại.'
+          );
+          setStep('config');
+          return;
+        }
+      }
+
       const result = await bleProvisioner.connectAndSendConfig(
         {
           ssid: ssid.trim(),
           pass: wifiPass,
           broker: brokerIp.trim(),
-          user: 'inno',
-          pass_mqtt: 'inno123'
+          user: mqttUser,
+          pass_mqtt: mqttPass
         },
         (payload: BleStatusPayload) => {
           if (payload.status === 'saving') {
@@ -137,7 +156,29 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
       <div className="space-y-4">
         {!isBleSupported && (
           <Notice tone="error">
-            Trình duyệt của bạn không hỗ trợ <strong>Web Bluetooth</strong>. Hãy sử dụng <strong>Google Chrome</strong> hoặc <strong>Microsoft Edge</strong> trên máy tính/điện thoại Android.
+            <div className="space-y-1.5 text-xs text-left">
+              <p className="font-semibold text-sm">Trình duyệt chưa bật tính năng Web Bluetooth</p>
+              {typeof window !== 'undefined' && !window.isSecureContext ? (
+                <div>
+                  <p>
+                    <strong>Nguyên nhân:</strong> Bạn đang truy cập qua địa chỉ HTTP (<code>{window.location.host}</code>). Trình duyệt bắt buộc <strong>HTTPS</strong> hoặc <strong>localhost</strong> mới cho phép truy cập Bluetooth.
+                  </p>
+                  <p className="mt-1">
+                    <strong>Cách mở khoá trong 30 giây:</strong>
+                  </p>
+                  <ol className="list-decimal pl-4 mt-0.5 space-y-0.5">
+                    <li>Mở tab mới, vào <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code> (hoặc <code>edge://flags</code>, <code>brave://flags</code>)</li>
+                    <li>Tìm mục <strong>Insecure origins treated as secure</strong></li>
+                    <li>Dán địa chỉ: <code>{window.location.origin}</code></li>
+                    <li>Chọn <strong>Enabled</strong> rồi bấm <strong>Relaunch</strong> trình duyệt.</li>
+                  </ol>
+                </div>
+              ) : (
+                <p>
+                  Vui lòng sử dụng <strong>Google Chrome</strong> hoặc <strong>Microsoft Edge</strong> trên máy tính/điện thoại Android. Nếu chạy trên Linux, cần khởi chạy trình duyệt kèm cờ <code>--enable-features=WebBluetooth</code>.
+                </p>
+              )}
+            </div>
           </Notice>
         )}
 
@@ -147,7 +188,7 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
         {step === 'scan' && (
           <div className="text-center py-6 space-y-4">
             <div className="w-16 h-16 rounded-full bg-accent/10 text-accent flex items-center justify-center mx-auto ring-8 ring-accent/5">
-              <Bluetooth className="w-8 h-8 animate-pulse" />
+              <Bluetooth className="w-8 h-8" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-ink">Tìm kiếm thiết bị xung quanh</h3>
@@ -254,11 +295,8 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
         {/* BƯỚC 3: Đang ghép nối */}
         {step === 'pairing' && (
           <div className="text-center py-8 space-y-4">
-            <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-accent/20 animate-ping" />
-              <div className="w-16 h-16 rounded-full bg-accent/10 text-accent flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin" />
-              </div>
+            <div className="w-16 h-16 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin" />
             </div>
             <div>
               <h3 className="text-base font-bold text-ink">Đang truyền cấu hình Wi-Fi</h3>
@@ -279,7 +317,7 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
                 Thiết bị <strong>{displayName || deviceName}</strong> đã nhận cấu hình và kết nối thành công vào hệ thống.
               </p>
               {assignedIp && (
-                <div className="inline-block mt-2 px-3 py-1 bg-sunken rounded text-xs font-mono text-ink-2 border border-line">
+                <div className="inline-block mt-2 px-3 py-1 bg-sunken rounded text-xs text-ink-2 border border-line">
                   IP LAN: {assignedIp}
                 </div>
               )}

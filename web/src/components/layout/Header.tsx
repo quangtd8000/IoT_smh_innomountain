@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, LogOut, Menu, Sun, Moon } from 'lucide-react';
+import { RefreshCw, LogOut, Menu, Sun, Moon, Bluetooth } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHome } from '../../context/HomeContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,9 +9,10 @@ export interface HeaderProps {
   title: string;
   onOpenCreateHome?: () => void;
   onOpenMenu?: () => void;
+  onOpenBlePairing?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, onOpenMenu }) => {
+export const Header: React.FC<HeaderProps> = ({ title, onOpenMenu, onOpenBlePairing }) => {
   const { user, logout } = useAuth();
   const { refreshHomeDetails, isRefreshing } = useHome();
   const { resolved, toggle } = useTheme();
@@ -32,7 +33,17 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenMenu }) => {
         <h2 className="font-display text-lg font-semibold text-ink truncate">{title}</h2>
       </div>
 
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1 sm:gap-1.5">
+        {onOpenBlePairing && (
+          <button
+            onClick={onOpenBlePairing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-accent bg-accent/10 hover:bg-accent/20 border border-accent/30 transition-colors"
+            title="Cài đặt Wi-Fi và ghép nối ESP32 qua Bluetooth"
+          >
+            <Bluetooth size={15} />
+            <span className="hidden sm:inline">Ghép nối Bluetooth</span>
+          </button>
+        )}
         <button
           onClick={toggle}
           className={iconButton}

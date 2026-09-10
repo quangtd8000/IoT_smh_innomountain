@@ -8,6 +8,7 @@ export interface LayoutProps {
   currentPage: string;
   onSelectPage: (page: string) => void;
   onOpenCreateHome: () => void;
+  onOpenBlePairing?: () => void;
   children: React.ReactNode;
 }
 
@@ -15,6 +16,7 @@ export const Layout: React.FC<LayoutProps> = ({
   currentPage,
   onSelectPage,
   onOpenCreateHome,
+  onOpenBlePairing,
   children,
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -34,6 +36,7 @@ export const Layout: React.FC<LayoutProps> = ({
           title={pageTitle(currentPage)}
           onOpenCreateHome={onOpenCreateHome}
           onOpenMenu={() => setDrawerOpen(true)}
+          onOpenBlePairing={onOpenBlePairing}
         />
         {/* pb-20 chừa chỗ cho tab dưới trên điện thoại */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6">{children}</main>

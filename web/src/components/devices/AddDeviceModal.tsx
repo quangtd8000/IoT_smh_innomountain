@@ -6,7 +6,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Notice } from '../ui/Notice';
 
-import { Bluetooth, Sparkles } from 'lucide-react';
+import { Bluetooth } from 'lucide-react';
 import { BlePairingModal } from './BlePairingModal';
 
 export interface AddDeviceModalProps {
@@ -81,14 +81,14 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({ isOpen, onClose 
       >
         <div className="space-y-4">
           {/* Quick Bluetooth Pairing Button */}
-          <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border border-blue-500/20 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-md bg-sunken border border-line flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-md bg-accent/10 text-accent flex items-center justify-center shrink-0">
                 <Bluetooth className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-ink flex items-center gap-1.5">
-                  Ghép nối Bluetooth <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 font-semibold">Tự động</span>
+                <h4 className="text-sm font-bold text-ink">
+                  Ghép nối Bluetooth
                 </h4>
                 <p className="text-xs text-ink-2">Cài đặt Wi-Fi tự động cho ESP32 không cần gõ UID</p>
               </div>

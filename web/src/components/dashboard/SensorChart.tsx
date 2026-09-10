@@ -59,13 +59,13 @@ export const SensorChart: React.FC<SensorChartProps> = ({ selectedRoomId = 'all'
   const palette = CHART[resolved];
   const group = GROUPS.find((g) => g.id === groupId) ?? GROUPS[0];
 
-  // Tìm thiết bị cảm biến phù hợp với phòng đang chọn
+  // Tìm cảm biến CỦA ĐÚNG phòng đang chọn — không fallback sang phòng khác
+  // (cùng lý do như gauge ở DashboardPage: số liệu phòng khác đội lốt
+  // phòng này là dữ liệu giả).
   const roomSensorDevice =
     selectedRoomId === 'all'
       ? devices.find((d) => d.device_type === 'sensor' || d.device_uid.includes('node') || d.name.toLowerCase().includes('cảm biến')) || devices[0]
-      : devices.find((d) => d.room_id === selectedRoomId && (d.device_type === 'sensor' || d.device_uid.includes('node'))) ||
-        devices.find((d) => d.device_type === 'sensor' || d.device_uid.includes('node')) ||
-        devices[0];
+      : devices.find((d) => d.room_id === selectedRoomId && (d.device_type === 'sensor' || d.device_uid.includes('node')));
 
   const selectedDeviceId = roomSensorDevice?.id;
   const currentRoomName = rooms.find((r) => r.id === selectedRoomId)?.name;
@@ -136,7 +136,11 @@ export const SensorChart: React.FC<SensorChartProps> = ({ selectedRoomId = 'all'
 
       {buckets.length === 0 ? (
         <p className="text-sm text-ink-2 py-6">
-          {loading ? 'Đang tải' : 'Chưa có số liệu trong 15 phút vừa qua.'}
+          {loading
+            ? 'Đang tải'
+            : selectedRoomId !== 'all' && !selectedDeviceId
+              ? `Phòng ${currentRoomName ?? 'này'} chưa có cảm biến.`
+              : 'Chưa có số liệu trong 15 phút vừa qua.'}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

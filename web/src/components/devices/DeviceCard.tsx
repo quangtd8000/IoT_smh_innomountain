@@ -110,7 +110,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device }) => {
                       className="flex items-center justify-between gap-3 py-1.5 px-2 rounded hover:bg-ink/[0.02] transition-colors"
                     >
                       <span className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono text-ink-2 bg-ink/5 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <span className="text-xs text-ink-2 bg-ink/5 px-1.5 py-0.5 rounded flex-shrink-0">
                           #{ch.channel}
                         </span>
                         <span className="text-sm text-ink truncate" title={ch.name}>

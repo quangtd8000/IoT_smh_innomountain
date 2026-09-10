@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Settings2, Home, Moon, Wind, PowerOff, Sparkles } from 'lucide-react';
+import { Plus, Settings2, Home, Moon, Wind, PowerOff } from 'lucide-react';
 import { useHome } from '../../context/HomeContext';
 import { matchesAny, KEYWORDS } from '../../lib/text';
 import {
@@ -140,7 +140,7 @@ export const QuickSceneBar: React.FC = () => {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
         {scenes.map((s) => {
-          const Icon = SCENE_ICONS[s.iconName] || Sparkles;
+          const Icon = SCENE_ICONS[s.iconName] || Home;
           const isRunning = runningScene === s.id;
           return (
             <div

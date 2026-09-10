@@ -39,4 +39,15 @@ export const homesApi = {
   deleteMember: async (homeId: number, userId: number): Promise<void> => {
     await apiClient.delete(`/homes/${homeId}/members/${userId}`);
   },
+
+  // Cấu hình provisioning ESP32 qua BLE (broker + MQTT credential).
+  // Chỉ owner/admin — credential do backend cấp lúc ghép nối, không hardcode.
+  getProvisionConfig: async (
+    homeId: number
+  ): Promise<{ broker: string; user: string; pass_mqtt: string }> => {
+    const res = await apiClient.get<ApiResponse<{ broker: string; user: string; pass_mqtt: string }>>(
+      `/homes/${homeId}/provision-config`
+    );
+    return res.data.data || (res.data as any);
+  },
 };

@@ -23,16 +23,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenCreateHome }
   const [latestTelemetry, setLatestTelemetry] = useState<SensorData | null>(null);
   const [activeRemoteDevice, setActiveRemoteDevice] = useState<IRDevice | null>(null);
 
-  // Tìm node cảm biến tương ứng với phòng đang chọn hoặc node chính
+  // Tìm node cảm biến CỦA ĐÚNG phòng đang chọn — tuyệt đối không fallback
+  // sang cảm biến phòng khác (hiển thị số liệu phòng khác dưới tên phòng này
+  // là dữ liệu giả, sai sự thật với người dùng gia đình).
   const sensorDevice =
     selectedRoomFilter === 'all'
-      ? devices.find((d) => d.device_type === 'sensor' || d.name.toLowerCase().includes('không khí') || d.device_uid.includes('node')) || devices[0]
-      : devices.find((d) => d.room_id === selectedRoomFilter && (d.device_type === 'sensor' || d.device_uid.includes('node'))) ||
-        devices.find((d) => d.device_type === 'sensor' || d.device_uid.includes('node')) ||
-        devices[0];
+      ? devices.find((d) => d.device_type === 'sensor' || d.name.toLowerCase().includes('không khí')) || devices[0]
+      : devices.find((d) => d.room_id === selectedRoomFilter && (d.device_type === 'sensor' || d.name.toLowerCase().includes('không khí')));
 
   const selectedRoom = rooms.find((r) => r.id === selectedRoomFilter);
-  const isRoomSpecificSensor = selectedRoomFilter !== 'all' && sensorDevice?.room_id === selectedRoomFilter;
+  // Phòng đang chọn có cảm biến riêng hay không (quyết định hiển thị gauge hay
+  // thông báo "chưa có cảm biến" — không bao giờ mượn số liệu phòng khác).
+  const noRoomSensor = selectedRoomFilter !== 'all' && !sensorDevice;
 
   // Lấy danh sách remote hồng ngoại theo phòng
   const allIRDevices: Array<{ ir: IRDevice; parentName: string; roomId?: number | null }> = [];
@@ -47,25 +49,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenCreateHome }
       ? allIRDevices
       : allIRDevices.filter((item) => item.roomId === selectedRoomFilter);
 
-  // Polling dữ liệu cảm biến mỗi 4 giây
+  // Polling dữ liệu cảm biến mỗi 4 giây (chỉ lấy nếu thiết bị online)
   useEffect(() => {
-    if (sensorDevice) {
-      const fetchLatest = async () => {
-        try {
-          const list = await telemetryApi.getTelemetry(sensorDevice.id, { limit: 1 });
-          if (list && list.length > 0) {
+    if (!sensorDevice || sensorDevice.status === 'offline') {
+      setLatestTelemetry(null);
+      return;
+    }
+
+    const fetchLatest = async () => {
+      try {
+        const list = await telemetryApi.getTelemetry(sensorDevice.id, { limit: 1 });
+        if (list && list.length > 0) {
+          const recordTime = new Date(list[0].timestamp).getTime();
+          // Nếu dữ liệu cũ hơn 5 phút, coi như thiết bị đã ngắt tín hiệu
+          if (Date.now() - recordTime > 5 * 60 * 1000) {
+            setLatestTelemetry(null);
+          } else {
             setLatestTelemetry(list[0]);
           }
-        } catch (e) {
-          console.error('Error fetching latest telemetry for gauge:', e);
+        } else {
+          setLatestTelemetry(null);
         }
-      };
+      } catch (e) {
+        console.error('Error fetching latest telemetry for gauge:', e);
+        setLatestTelemetry(null);
+      }
+    };
 
-      fetchLatest();
-      const timer = setInterval(fetchLatest, 4000);
-      return () => clearInterval(timer);
-    }
-  }, [sensorDevice?.id]);
+    fetchLatest();
+    const timer = setInterval(fetchLatest, 4000);
+    return () => clearInterval(timer);
+  }, [sensorDevice?.id, sensorDevice?.status]);
 
   if (isLoading) {
     return <p className="text-sm text-ink-2">Đang tải...</p>;
@@ -120,9 +134,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenCreateHome }
           const isSelected = selectedRoomFilter === r.id;
           const tone = roomTone(r.name);
           const Icon = tone.icon;
-          const roomRelayCount = devices
-            .filter((d) => d.room_id === r.id)
-            .reduce((sum, d) => sum + (d.relay_channels?.length || 0), 0);
+          // Đếm THIẾT BỊ theo phòng, không đếm kênh relay. Bản cũ cộng
+          // relay_channels nên một node 3 công tắc đội số lên 3, phòng nào
+          // cũng hiện "(3)" dù chỉ có 1 thiết bị.
+          const roomDeviceCount = devices.filter((d) => d.room_id === r.id).length;
 
           return (
             <button
@@ -133,25 +148,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenCreateHome }
             >
               <Icon size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: 'rgb(var(--tone))' }} />
               <span>{r.name}</span>
-              {roomRelayCount > 0 && (
-                <span className="text-xs text-ink-2 tnum">({roomRelayCount})</span>
+              {roomDeviceCount > 0 && (
+                <span className="text-xs text-ink-2 tnum">({roomDeviceCount})</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* 3. Đo lường không khí phòng */}
-      <AirQualityGauge
-        telemetry={latestTelemetry}
-        deviceName={
-          selectedRoomFilter === 'all'
-            ? 'Toàn ngôi nhà'
-            : isRoomSpecificSensor
-            ? `${selectedRoom?.name} · Cảm biến phòng`
-            : `${selectedRoom?.name} (Dữ liệu chung)`
-        }
-      />
+      {/* 3. Đo lường không khí — chỉ hiển thị khi có cảm biến thuộc đúng phòng
+          đang chọn. Không mượn số liệu phòng khác. */}
+      {noRoomSensor ? (
+        <section className="plate p-5 sm:p-6">
+          <h2 className="text-sm font-medium text-ink-2 mb-4">Không khí</h2>
+          <p className="text-sm text-ink">Phòng {selectedRoom?.name} chưa có cảm biến.</p>
+          <p className="text-sm text-ink-2 mt-1">
+            Thêm một node cảm biến vào phòng này để xem nhiệt độ, độ ẩm và chất lượng không khí.
+          </p>
+        </section>
+      ) : (
+        <AirQualityGauge
+          telemetry={latestTelemetry}
+          deviceName={
+            selectedRoomFilter === 'all'
+              ? 'Toàn ngôi nhà'
+              : `${selectedRoom?.name} · Cảm biến phòng`
+          }
+        />
+      )}
 
       {/* 4. Mặt bảng công tắc theo phòng */}
       <section>

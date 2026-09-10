@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.models.home import Home, HomeMember
@@ -200,3 +201,31 @@ def remove_member(
     db.delete(member)
     db.commit()
     return ApiResponse(data={"removed": True, "user_id": user_id, "home_id": home_id})
+
+
+@router.get("/{home_id}/provision-config", response_model=ApiResponse[dict])
+def get_provision_config(
+    home_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cấu hình provisioning ESP32 qua BLE (broker + MQTT credential).
+
+    Credential MQTT không được hardcode trong bundle frontend (spec §30/§32:
+    credential thuộc Backend↔EMQX↔ESP32). Frontend gọi endpoint này với JWT
+    ngay trước khi ghép nối; chỉ owner/admin mới được cấp.
+    """
+    check_home_permission(db, current_user.id, home_id, ["owner", "admin"])
+    if not settings.PROVISION_MQTT_USERNAME or not settings.PROVISION_MQTT_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "PROVISION_NOT_CONFIGURED",
+                "message": "Máy chủ chưa cấu hình PROVISION_MQTT_USERNAME / PROVISION_MQTT_PASSWORD trong .env"
+            }
+        )
+    return ApiResponse(data={
+        "broker": settings.PROVISION_BROKER,
+        "user": settings.PROVISION_MQTT_USERNAME,
+        "pass_mqtt": settings.PROVISION_MQTT_PASSWORD,
+    })

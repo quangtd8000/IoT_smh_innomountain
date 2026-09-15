@@ -9,6 +9,8 @@ export interface BleWifiConfig {
   broker?: string;
   user?: string;
   pass_mqtt?: string;
+  /** Token backend cấp để thiết bị tự đăng ký vào đúng home ở bản tin đầu. */
+  claim_token?: string;
 }
 
 export interface BleStatusPayload {
@@ -108,6 +110,7 @@ export class BleProvisioner {
         if (config.broker) payload.broker = config.broker;
         if (config.user) payload.user = config.user;
         if (config.pass_mqtt) payload.pass_mqtt = config.pass_mqtt;
+        if (config.claim_token) payload.claim_token = config.claim_token;
         const payloadStr = JSON.stringify(payload);
 
         const encoder = new TextEncoder();

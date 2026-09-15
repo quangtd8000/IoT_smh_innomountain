@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.database import SessionLocal
 from app.models.device import Device, RelayChannel
 from app.models.sensor import SensorData
+from app.services.device_registry import auto_register_device
 
 logger = logging.getLogger("mqtt")
 
@@ -71,6 +72,8 @@ def on_message(client, userdata, msg):
             elif m_sh_tel:
                 device_uid = m_sh_tel.group(1)
                 device = db.query(Device).filter(Device.device_uid == device_uid).first()
+                if not device:
+                    device = auto_register_device(db, device_uid, payload)
                 if device:
                     process_telemetry(db, device, payload)
                 else:
@@ -78,6 +81,8 @@ def on_message(client, userdata, msg):
             elif m_sh_state:
                 device_uid = m_sh_state.group(1)
                 device = db.query(Device).filter(Device.device_uid == device_uid).first()
+                if not device:
+                    device = auto_register_device(db, device_uid, payload)
                 if device:
                     process_state(db, device, payload)
                 else:

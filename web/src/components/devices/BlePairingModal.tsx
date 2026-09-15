@@ -74,14 +74,17 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
     setStatusMsg('Đang kết nối Bluetooth với thiết bị...');
 
     try {
-      // Credential MQTT do backend cấp cho owner/admin (không hardcode ở frontend).
+      // Credential MQTT + claim token do backend cấp cho owner/admin
+      // (không hardcode ở frontend).
       let mqttUser = '';
       let mqttPass = '';
+      let claimToken = '';
       if (activeHome) {
         try {
           const cfg = await homesApi.getProvisionConfig(activeHome.id);
           mqttUser = cfg.user;
           mqttPass = cfg.pass_mqtt;
+          claimToken = cfg.claim_token;
         } catch (cfgErr: any) {
           setError(
             cfgErr?.message ||
@@ -98,7 +101,8 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
           pass: wifiPass,
           broker: brokerIp.trim(),
           user: mqttUser,
-          pass_mqtt: mqttPass
+          pass_mqtt: mqttPass,
+          claim_token: claimToken
         },
         (payload: BleStatusPayload) => {
           if (payload.status === 'saving') {
@@ -113,22 +117,28 @@ export const BlePairingModal: React.FC<BlePairingModalProps> = ({ isOpen, onClos
         }
       );
 
-      // Đăng ký thiết bị vào Backend Smart Home
+      // Đăng ký thiết bị vào Backend Smart Home.
+      // UID lấy từ chính thiết bị báo qua BLE notify — KHÔNG suy từ tên quảng
+      // cáo nữa (tên chỉ là nhãn hiển thị, không phải định danh).
+      // Nếu chưa kịp nhận UID thì bỏ qua: thiết bị mang claim_token nên sẽ tự
+      // đăng ký ở bản tin đầu tiên, chỉ cần nạp lại danh sách sau đó.
       if (activeHome) {
-        const finalUid = result.uid || detectedUid || deviceName.toLowerCase().replace('smarthome-', 'esp32-node-');
+        const reportedUid = result.uid || detectedUid;
         const deviceType = deviceName.toLowerCase().includes('air') ? 'sensor' : 'relay';
-        
-        try {
-          await devicesApi.registerDevice(activeHome.id, {
-            name: displayName.trim() || deviceName,
-            device_uid: finalUid,
-            device_type: deviceType,
-            room_id: roomId ? Number(roomId) : null,
-          });
-          await refreshHomeDetails();
-        } catch (apiErr: any) {
-          console.warn("[Register API error or already exists]", apiErr);
+
+        if (reportedUid) {
+          try {
+            await devicesApi.registerDevice(activeHome.id, {
+              name: displayName.trim() || deviceName,
+              device_uid: reportedUid,
+              device_type: deviceType,
+              room_id: roomId ? Number(roomId) : null,
+            });
+          } catch (apiErr: any) {
+            console.warn("[Register API error]", apiErr);
+          }
         }
+        await refreshHomeDetails();
       }
 
       setStep('success');

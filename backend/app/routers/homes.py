@@ -9,6 +9,7 @@ from app.schemas.home import HomeCreate, HomeUpdate, HomeResponse, HomeMemberAdd
 from app.schemas.common import ApiResponse
 from app.services.auth import get_current_user
 from app.services.permission import check_home_permission
+from app.services.claim import issue_claim_token
 
 router = APIRouter(prefix="/homes", tags=["Homes"])
 
@@ -228,4 +229,7 @@ def get_provision_config(
         "broker": settings.PROVISION_BROKER,
         "user": settings.PROVISION_MQTT_USERNAME,
         "pass_mqtt": settings.PROVISION_MQTT_PASSWORD,
+        # Token cho phép thiết bị tự đăng ký vào home này khi gửi bản tin đầu
+        # tiên — nhờ đó không phải tạo device tay cho từng board mới.
+        "claim_token": issue_claim_token(home_id),
     })

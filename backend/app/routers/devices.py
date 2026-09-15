@@ -1,6 +1,6 @@
 from typing import List
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
@@ -45,16 +45,38 @@ def list_devices(
 def create_device(
     home_id: int,
     device_in: DeviceCreate,
+    response: Response,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     check_home_permission(db, current_user.id, home_id, ["owner", "admin"])
 
-    if db.query(Device).filter(Device.device_uid == device_in.device_uid).first():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "DEVICE_UID_EXISTS", "message": f"Device with UID {device_in.device_uid} already exists"}
-        )
+    # UID đã tồn tại thì KHÔNG báo lỗi nữa: thiết bị có thể đã tự đăng ký lúc
+    # gửi bản tin đầu tiên (services/device_registry.py) trước khi web kịp POST.
+    # Trả về device cũ và áp tên/phòng người dùng vừa chọn — thao tác idempotent.
+    existing = db.query(Device).filter(Device.device_uid == device_in.device_uid).first()
+    if existing:
+        if existing.home_id != home_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "DEVICE_UID_EXISTS",
+                    "message": f"Thiết bị {device_in.device_uid} đã thuộc một ngôi nhà khác"
+                }
+            )
+        if device_in.room_id:
+            room = db.query(Room).filter(Room.id == device_in.room_id, Room.home_id == home_id).first()
+            if not room:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"code": "ROOM_NOT_IN_HOME", "message": "Specified room does not belong to this home"}
+                )
+        existing.name = device_in.name or existing.name
+        existing.room_id = device_in.room_id
+        db.commit()
+        db.refresh(existing)
+        response.status_code = status.HTTP_200_OK
+        return ApiResponse(data=DeviceResponse.model_validate(existing))
 
     if device_in.room_id:
         room = db.query(Room).filter(Room.id == device_in.room_id, Room.home_id == home_id).first()

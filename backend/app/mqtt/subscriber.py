@@ -10,24 +10,17 @@ from app.services.device_registry import auto_register_device
 logger = logging.getLogger("mqtt")
 
 # Topic Patterns:
-TELEMETRY_PATTERN = re.compile(r"^home/(\d+)/device/(\d+)/telemetry$")
-STATE_PATTERN = re.compile(r"^home/(\d+)/device/(\d+)/(state|status)$")
 SMART_HOME_TEL_PATTERN = re.compile(r"^(?:smart_home|smarthome)/([^/]+)/telemetry$")
 SMART_HOME_STATE_PATTERN = re.compile(r"^(?:smart_home|smarthome)/([^/]+)/(state|status)$")
 
 
 def on_connect(client, userdata, flags, rc, properties=None):
     logger.info(f"Connected to MQTT Broker (rc={rc})")
-    client.subscribe("home/+/device/+/telemetry", qos=1)
-    client.subscribe("home/+/device/+/state", qos=1)
-    client.subscribe("home/+/device/+/status", qos=1)
+    # Chi 3 wildcard: firmware moi chi publish smart_home/<uid>/{telemetry,state,status}
     client.subscribe("smart_home/+/telemetry", qos=1)
     client.subscribe("smart_home/+/state", qos=1)
     client.subscribe("smart_home/+/status", qos=1)
-    client.subscribe("smarthome/+/telemetry", qos=1)
-    client.subscribe("smarthome/+/state", qos=1)
-    client.subscribe("smarthome/+/status", qos=1)
-    logger.info("Subscribed to telemetry, state, and status topics")
+    logger.info("Subscribed to smart_home/+/telemetry, state, status topics")
 
 
 def on_message(client, userdata, msg):
@@ -46,30 +39,12 @@ def on_message(client, userdata, msg):
 
         logger.info(f"Received MQTT msg on [{topic}]: {payload_str}")
 
-        m_tel = TELEMETRY_PATTERN.match(topic)
-        m_state = STATE_PATTERN.match(topic)
         m_sh_tel = SMART_HOME_TEL_PATTERN.match(topic)
         m_sh_state = SMART_HOME_STATE_PATTERN.match(topic)
 
         db = SessionLocal()
         try:
-            if m_tel:
-                home_id = int(m_tel.group(1))
-                device_id = int(m_tel.group(2))
-                device = db.query(Device).filter(Device.id == device_id, Device.home_id == home_id).first()
-                if device:
-                    process_telemetry(db, device, payload)
-                else:
-                    logger.warning(f"Device {device_id} in home {home_id} not found for telemetry")
-            elif m_state:
-                home_id = int(m_state.group(1))
-                device_id = int(m_state.group(2))
-                device = db.query(Device).filter(Device.id == device_id, Device.home_id == home_id).first()
-                if device:
-                    process_state(db, device, payload)
-                else:
-                    logger.warning(f"Device {device_id} in home {home_id} not found for state update")
-            elif m_sh_tel:
+            if m_sh_tel:
                 device_uid = m_sh_tel.group(1)
                 device = db.query(Device).filter(Device.device_uid == device_uid).first()
                 if not device:
